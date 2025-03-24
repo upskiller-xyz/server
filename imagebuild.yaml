@@ -1,0 +1,7 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'europe-north2-docker.pkg.dev/daylight-factor/daylight-server-docker-repo/daylight-server-img:${_DAYLIGHT_SERVER_VERSION}', '.']
+substitutions:
+  _DAYLIGHT_SERVER_VERSION: $DAYLIGHT_SERVER_VERSION # default value
+images:
+- 'europe-north2-docker.pkg.dev/daylight-factor/daylight-server-docker-repo/daylight-server-img'
