@@ -1,8 +1,11 @@
 import math
 import numpy as np
 from PIL import Image
+import logging
 
-def align_df_image(image_pil_rgba: Image.Image, rotation_rad: float, translation_gh_mm_xyz: list, target_image_size_wh: tuple, scene_to_pixels_scale_x: float, scene_to_pixels_scale_y: float, logger) -> Image.Image:
+logger = logging.getLogger(__name__)
+
+def align_df_image(image_pil_rgba: Image.Image, rotation_rad: float, translation_gh_mm_xyz: list, target_image_size_wh: tuple, scene_to_pixels_scale_x: float, scene_to_pixels_scale_y: float) -> Image.Image:
     """
     Transforms (rotates, moves) a single RGBA PIL image.
     Empty areas are filled with white.
@@ -16,8 +19,8 @@ def align_df_image(image_pil_rgba: Image.Image, rotation_rad: float, translation
                 
         # (translation_gh_mm_xyz[0]) -> positive is "up" -> Pillow's 'f' (vertical offset)
         # (translation_gh_mm_xyz[1]) -> positive is "left" -> Pillow's 'c' (horizontal offset)
-        param_c_pil = translation_gh_mm_xyz[1] * scene_to_pixels_scale_y # NOT negative
-        param_f_pil = translation_gh_mm_xyz[0] * scene_to_pixels_scale_x # NOT negative
+        param_c_pil = translation_gh_mm_xyz[1] * scene_to_pixels_scale_y
+        param_f_pil = translation_gh_mm_xyz[0] * scene_to_pixels_scale_x
 
         # TranslationMatrix:
         # a, b, c

@@ -123,7 +123,7 @@ def initialize_server_resources():
                 json_string_content = blob.download_as_text(encoding="utf-8-sig") # utf-8-sig für BOM
                 json_data_from_gcs = json.loads(json_string_content)
                 
-                maps_data = create_color_maps_from_data(json_data_from_gcs, app.logger)
+                maps_data = create_color_maps_from_data(json_data_from_gcs)
                 
                 gan_value_map_reverse.clear()
                 gan_value_map_reverse.update(maps_data['value_map_reverse'])
@@ -190,40 +190,39 @@ def internal_post_json_to_endpoint(endpoint_url, json_data):
         raise
 
 
-# Outsourced functions for Grasshopper Orchestrator (ensure these are available)
+# Outsourced functions for Grasshopper Orchestrator
 def process_single_image_pipeline(image_idx, input_image_bytes, original_filename, rotation_rad, translation_mm_xyz, 
-                                  server_base_url_ref, logger_ref, 
-                                  known_colors_lab_ref, known_values_ref):
+                                  server_base_url_ref, known_colors_lab_ref, known_values_ref):
     """
     Processes a single image by ML inference, alignment and generation of the value matrix.
     Returns (value_matrix_np, non_white_mask_np, image_idx) or throws an exception.
     """
     try:
-        logger_ref.info(f"Pipeline Task {image_idx}: Start für Bild '{original_filename}'")
+        app.logger.info(f"Pipeline Task {image_idx}: Start für Bild '{original_filename}'")
 
         # Step 1: Call ML reference
-        logger_ref.info(f"Pipeline Task {image_idx}: Rufe /df_ml_inference für '{original_filename}' auf")
+        app.logger.info(f"Pipeline Task {image_idx}: Rufe /df_ml_inference für '{original_filename}' auf")
         inference_response = internal_post_image_to_endpoint(f"{server_base_url_ref}/df_ml_inference", input_image_bytes, image_filename=original_filename)
         ml_output_bytes = inference_response.content
-        logger_ref.info(f"Pipeline Task {image_idx}: ML-Inferenz für '{original_filename}' abgeschlossen.")
+        app.logger.info(f"Pipeline Task {image_idx}: ML-Inferenz für '{original_filename}' abgeschlossen.")
 
         # Step 2: Call image alignment
         original_filename_stem = original_filename.replace('.png', '')
-        logger_ref.info(f"Pipeline Task {image_idx}: Rufe /df_align für ML-Output von '{original_filename}' auf")
+        app.logger.info(f"Pipeline Task {image_idx}: Rufe /df_align für ML-Output von '{original_filename}' auf")
         align_form_payload = {
             "rotation_rad": str(rotation_rad),
             "translation_mm_xyz": json.dumps(translation_mm_xyz) 
         }
         align_response = internal_post_image_to_endpoint(f"{server_base_url_ref}/df_align", ml_output_bytes, image_filename=f"ml_output_for_align_{original_filename_stem}.png", additional_form_data=align_form_payload)
         aligned_image_bytes = align_response.content
-        logger_ref.info(f"Pipeline Task {image_idx}: Ausrichtung für '{original_filename}' abgeschlossen.")
+        app.logger.info(f"Pipeline Task {image_idx}: Ausrichtung für '{original_filename}' abgeschlossen.")
 
         # Step 3: Create value matrix for single aligned image
-        logger_ref.info(f"Pipeline Task {image_idx}: Erzeuge Wertematrix für ausgerichtetes Bild '{original_filename}'")
+        app.logger.info(f"Pipeline Task {image_idx}: Erzeuge Wertematrix für ausgerichtetes Bild '{original_filename}'")
         aligned_image_pil_rgba = Image.open(io.BytesIO(aligned_image_bytes))
         
-        v_matrix_np, nw_mask_np = generate_value_matrix_for_single_gan_image(aligned_image_pil_rgba, logger_ref, known_colors_lab_ref, known_values_ref)
-        logger_ref.info(f"Pipeline Task {image_idx}: Wertematrix für '{original_filename}' erzeugt.")
+        v_matrix_np, nw_mask_np = generate_value_matrix_for_single_gan_image(aligned_image_pil_rgba, known_colors_lab_ref, known_values_ref)
+        app.logger.info(f"Pipeline Task {image_idx}: Wertematrix für '{original_filename}' erzeugt.")
         return v_matrix_np, nw_mask_np, image_idx
 
     except requests.exceptions.HTTPError as e_http:
@@ -234,10 +233,10 @@ def process_single_image_pipeline(image_idx, input_image_bytes, original_filenam
             error_content = e_http.response.json().get("error", e_http.response.text[:200])
         except (json.JSONDecodeError, ValueError): 
             error_content = e_http.response.text[:200]
-        logger_ref.error(f"Pipeline Task {image_idx} ('{original_filename}'): HTTPError beim internen Aufruf an {failed_url} - Status {e_http.response.status_code} - Details: {error_content}", exc_info=False)
+        app.logger.error(f"Pipeline Task {image_idx} ('{original_filename}'): HTTPError beim internen Aufruf an {failed_url} - Status {e_http.response.status_code} - Details: {error_content}", exc_info=False)
         raise Exception(f"Pipeline fehlgeschlagen für Bild {image_idx} ('{original_filename}') bei {failed_url}. Interner Service Fehler: {error_content} (Status: {e_http.response.status_code})") from e_http
     except Exception as e_pipe:
-        logger_ref.error(f"Pipeline Task {image_idx} ('{original_filename}'): Allgemeiner Fehler in der Verarbeitung: {e_pipe}", exc_info=True)
+        app.logger.error(f"Pipeline Task {image_idx} ('{original_filename}'): Allgemeiner Fehler in der Verarbeitung: {e_pipe}", exc_info=True)
         raise Exception(f"Pipeline fehlgeschlagen für Bild {image_idx} ('{original_filename}'): {str(e_pipe)}") from e_pipe
 
 
@@ -259,7 +258,7 @@ def df_ml_inference_route():
         image_pil_rgb = Image.open(io.BytesIO(image_file.read())).convert("RGB")
         
         # Preprocessing
-        preprocessed_tensor = preprocess_for_df_ml(image_pil_rgb, app.logger, EXPECTED_ML_IMG_SIZE, ML_NORMALIZATION_RANGE)
+        preprocessed_tensor = preprocess_for_df_ml(image_pil_rgb, EXPECTED_ML_IMG_SIZE, ML_NORMALIZATION_RANGE)
         
         # ML-Inference
         app.logger.debug("Starting ML prediction...")
@@ -267,7 +266,7 @@ def df_ml_inference_route():
         app.logger.debug("ML prediction finished.")
         
         # Postprocessing
-        output_image_pil_rgba = postprocess_df_ml_prediction(prediction_tensor, app.logger, ML_NORMALIZATION_RANGE)
+        output_image_pil_rgba = postprocess_df_ml_prediction(prediction_tensor, ML_NORMALIZATION_RANGE)
         
         # Return result image as bytes
         img_byte_arr = io.BytesIO()
@@ -313,7 +312,7 @@ def df_align_route():
         if not (isinstance(translation_mm_xyz, list) and len(translation_mm_xyz) >= 2 and all(isinstance(c, (int, float)) for c in translation_mm_xyz[:2])):
              raise ValueError("translation_mm_xyz must be a list of at least two numbers, e.g., [x, y, z] or [x,y]")
 
-        transformed_pil_rgba = align_df_image(image_pil_rgba, rotation_rad, translation_mm_xyz, EXPECTED_ML_IMG_SIZE, GAN_PIXELS_PER_MM_X_ML, GAN_PIXELS_PER_MM_Y_ML, app.logger)
+        transformed_pil_rgba = align_df_image(image_pil_rgba, rotation_rad, translation_mm_xyz, EXPECTED_ML_IMG_SIZE, GAN_PIXELS_PER_MM_X_ML, GAN_PIXELS_PER_MM_Y_ML)
         
         img_byte_arr = io.BytesIO()
         transformed_pil_rgba.save(img_byte_arr, format='PNG')
@@ -349,12 +348,12 @@ def gh_images_to_values_route():
             # Pics in RGBA
             image_pil_rgba = Image.open(io.BytesIO(file_storage.read()))
             
-            v_matrix_np, nw_mask_np = generate_value_matrix_for_single_gan_image(image_pil_rgba, app.logger, gan_known_colors_lab, gan_known_values)
+            v_matrix_np, nw_mask_np = generate_value_matrix_for_single_gan_image(image_pil_rgba, gan_known_colors_lab, gan_known_values)
             value_matrices_list_np.append(v_matrix_np)
             non_white_masks_list_np.append(nw_mask_np)
         
         # Aggregating matrices
-        summed_values_np, combined_mask_np = aggregate_multiple_value_matrices_gan(value_matrices_list_np, non_white_masks_list_np, app.logger, EXPECTED_ML_IMG_SIZE)
+        summed_values_np, combined_mask_np = aggregate_multiple_value_matrices_gan(value_matrices_list_np, non_white_masks_list_np, EXPECTED_ML_IMG_SIZE)
         
         app.logger.info(f"[{request.remote_addr}] /gh_images_to_values processing complete. Output summed_value_matrix shape: {summed_values_np.shape}")
         return jsonify({
@@ -390,10 +389,10 @@ def gh_metrics_and_render_route():
         mask_np = np.array(combined_non_white_mask_json, dtype=bool)
 
         # Calculate metrics (based on 256x256)
-        avg_value, ratio_gt1 = calculate_gan_metrics_from_values(values_np, mask_np, app.logger)
+        avg_value, ratio_gt1 = calculate_gan_metrics_from_values(values_np, mask_np)
         
         # "render" final picture (256x256)
-        final_image_pil_256 = render_final_gan_image_from_values(values_np, mask_np, app.logger, EXPECTED_ML_IMG_SIZE, gan_value_map_reverse)
+        final_image_pil_256 = render_final_gan_image_from_values(values_np, mask_np, EXPECTED_ML_IMG_SIZE, gan_value_map_reverse)
         
         app.logger.info(f"[{request.remote_addr}] /gh_metrics_and_render: AvgValue={avg_value:.3f}, RatioGT1={ratio_gt1:.3f}")
 
@@ -521,7 +520,6 @@ def df_gh_orchestrator_route():
                     rotations_rad_gh[i],
                     translations_mm_gh[i],
                     SERVER_BASE_URL,        # Pass SERVER_BASE_URL (global)
-                    app.logger,             # Pass app.logger instance
                     gan_known_colors_lab,   # Pass gan_known_colors_lab (global)
                     gan_known_values        # Pass gan_known_values (global)
                 )

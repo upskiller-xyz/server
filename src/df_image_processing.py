@@ -4,9 +4,11 @@ import json
 import numpy as np
 from PIL import Image
 from skimage.color import rgb2lab
+import logging
 
+logger = logging.getLogger(__name__)
 
-def create_color_maps_from_data(json_data_list: list, logger): # 
+def create_color_maps_from_data(json_data_list: list):
     """
     Creates the various color mapping structures from an already
     parsed list of dictionaries.
@@ -61,7 +63,7 @@ def create_color_maps_from_data(json_data_list: list, logger): #
     }
 
 
-def load_color_map_from_json(json_path, logger):
+def load_color_map_from_json(json_path):
     """
     Lädt die Farb-Wert-Zuordnung aus der JSON-Datei.
     Gibt ein Dictionary mit den geladenen Karten zurück.
@@ -130,7 +132,7 @@ def load_color_map_from_json(json_path, logger):
     }
 
 
-def generate_value_matrix_for_single_gan_image(image_pil_rgba: Image.Image, logger, gan_known_colors_lab_np: np.ndarray, gan_known_values_np: np.ndarray):
+def generate_value_matrix_for_single_gan_image(image_pil_rgba: Image.Image, gan_known_colors_lab_np: np.ndarray, gan_known_values_np: np.ndarray):
     """
     Wrapper function, which now calls the fast, vectorized method.
     """
@@ -141,7 +143,7 @@ def generate_value_matrix_for_single_gan_image(image_pil_rgba: Image.Image, logg
     return value_matrix, non_white_mask
 
 
-def aggregate_multiple_value_matrices_gan(value_matrices_list_np, non_white_masks_list_np, logger, image_size_wh_for_fallback):
+def aggregate_multiple_value_matrices_gan(value_matrices_list_np, non_white_masks_list_np, image_size_wh_for_fallback):
     """
     Sums a list of value matrices and combines their masks by logical OR.
     """
@@ -172,7 +174,7 @@ def aggregate_multiple_value_matrices_gan(value_matrices_list_np, non_white_mask
     return summed_values_np, combined_mask_np
 
 
-def calculate_gan_metrics_from_values(values_np, non_white_mask_np, logger):
+def calculate_gan_metrics_from_values(values_np, non_white_mask_np):
     """
     Calculates metrics (average value, ratio >1) from the value matrix and mask.
     """
@@ -196,7 +198,6 @@ def calculate_gan_metrics_from_values(values_np, non_white_mask_np, logger):
 def render_final_gan_image_from_values(
         values_np: np.ndarray,          # (summed) values,
         non_white_mask_np: np.ndarray,  # mask of non-white pixels
-        logger,
         image_size_wh: tuple,
         value_map_reverse: dict
     ) -> Image.Image:
@@ -249,8 +250,7 @@ def render_final_gan_image_from_values(
 
 def fast_value_matrix(image_pil_rgba: Image.Image, 
                       known_colors_lab_np: np.ndarray, 
-                      known_values_np: np.ndarray, 
-                      logger): # Logger hinzugefügt für Konsistenz
+                      known_values_np: np.ndarray):
     """
     Creates the value matrix and non-white mask in a vectorized way.
     """
