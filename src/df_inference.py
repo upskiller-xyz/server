@@ -1,8 +1,11 @@
 # df_inference.py
 import numpy as np
 from PIL import Image
+import logging
 
-def preprocess_for_df_ml(image_pil_rgb, logger, target_ml_size_wh, normalization_range):
+logger = logging.getLogger(__name__)
+
+def preprocess_for_df_ml(image_pil_rgb, target_ml_size_wh, normalization_range):
     """
     Prepares a PIL RGB image for the ML model.
     """
@@ -31,7 +34,7 @@ def preprocess_for_df_ml(image_pil_rgb, logger, target_ml_size_wh, normalization
         raise
 
 
-def postprocess_df_ml_prediction(prediction_batch_np, logger, normalization_range):
+def postprocess_df_ml_prediction(prediction_batch_np, normalization_range):
     """
     Converts the NumPy array of the ML model back into a PIL image (RGB).
     """
