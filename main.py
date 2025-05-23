@@ -626,10 +626,10 @@ def df_gh_orchestrator_route():
 
 ########################################################################################################
 
-
+initialize_server_resources()
 
 if __name__ == '__main__':
-    initialize_server_resources()
+    
     if INITIALIZATION_SUCCESSFUL:
         app.logger.info(f"Flask app '{app.name}' starting on host 0.0.0.0, port {SERVER_PORT}. Debug mode: {app.debug}")
         app.run(debug=True, host="0.0.0.0", port=8081)
