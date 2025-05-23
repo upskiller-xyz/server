@@ -139,7 +139,7 @@ def generate_value_matrix_for_single_gan_image(image_pil_rgba: Image.Image, gan_
     # Replacing older methode with faster, vectorized method  
     logger.info(f"Generating value matrix for single GAN image for image size {image_pil_rgba.size}")
 
-    value_matrix, non_white_mask = fast_value_matrix(image_pil_rgba, gan_known_colors_lab_np, gan_known_values_np, logger)
+    value_matrix, non_white_mask = fast_value_matrix(image_pil_rgba, gan_known_colors_lab_np, gan_known_values_np)
     return value_matrix, non_white_mask
 
 

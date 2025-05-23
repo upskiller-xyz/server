@@ -557,7 +557,6 @@ def df_gh_orchestrator_route():
         summed_values_np, combined_mask_np = aggregate_multiple_value_matrices_gan(
             value_matrices_from_pipeline,
             non_white_masks_from_pipeline,
-            app.logger,
             EXPECTED_ML_IMG_SIZE # Global constant
         )
         app.logger.info(f"Orchestrator: Aggregation complete. Summed values shape: {summed_values_np.shape}, Combined mask non-white pixels: {np.sum(combined_mask_np)}")
