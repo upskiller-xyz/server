@@ -20,6 +20,7 @@ import io
 import json
 import logging
 from google.cloud import storage
+import base64
 # Outsourced functions for Grasshopper Orchestrator
 from src.df_inference import preprocess_for_df_ml, postprocess_df_ml_prediction
 from src.df_align_image import align_df_image
@@ -388,39 +389,40 @@ def gh_metrics_and_render_route():
         values_np = np.array(summed_value_matrix_json, dtype=np.float32)
         mask_np = np.array(combined_non_white_mask_json, dtype=bool)
 
-        # Calculate metrics (based on 256x256)
         avg_value, ratio_gt1 = calculate_gan_metrics_from_values(values_np, mask_np)
-        
-        # "render" final picture (256x256)
         final_image_pil_256 = render_final_gan_image_from_values(values_np, mask_np, EXPECTED_ML_IMG_SIZE, gan_value_map_reverse)
         
         app.logger.info(f"[{request.remote_addr}] /gh_metrics_and_render: AvgValue={avg_value:.3f}, RatioGT1={ratio_gt1:.3f}")
 
-        # Scale to 128x128 for Output
         app.logger.info(f"Resizing final image from {EXPECTED_ML_IMG_SIZE} to {FINAL_OUTPUT_IMG_SIZE} using NEAREST resampling...")
         final_image_to_send_pil_128 = final_image_pil_256.resize(FINAL_OUTPUT_IMG_SIZE, Image.Resampling.NEAREST)
         app.logger.info(f"Image resized to {FINAL_OUTPUT_IMG_SIZE}.")
 
         img_byte_arr = io.BytesIO()
-        final_image_to_send_pil_128.save(img_byte_arr, format='PNG') # Verwende das skalierte Bild
-        img_byte_arr.seek(0)
+        final_image_to_send_pil_128.save(img_byte_arr, format='PNG')
+        image_bytes = img_byte_arr.getvalue()
+        image_base64_str = base64.b64encode(image_bytes).decode('utf-8')
 
-        response = make_response(send_file(
-            img_byte_arr, 
-            mimetype='image/png', 
-            as_attachment=True, 
-            download_name=f"final_rendered_image_{FINAL_OUTPUT_IMG_SIZE[0]}x{FINAL_OUTPUT_IMG_SIZE[1]}.png"))
-        # Header for GH-Script
-        response.headers['X-Processing-Success'] = 'True' 
-        response.headers['X-Average-Value'] = str(round(avg_value, 5))
-        response.headers['X-Ratio-Pixels-GT1'] = str(round(ratio_gt1, 5))
+        output_filename = f"final_rendered_image_{FINAL_OUTPUT_IMG_SIZE[0]}x{FINAL_OUTPUT_IMG_SIZE[1]}.png"
 
-        return response
+        # JSON-Payload for answer
+        response_payload = {
+            "success": True,
+            "filename": output_filename,
+            "image_base64": image_base64_str,
+            "mimetype": "image/png",
+            "metrics": {
+                "average_value": round(avg_value, 5),
+                "ratio_gt1": round(ratio_gt1, 5)
+            },
+            "message": "Metrics calculated and image rendered successfully."
+        }
+        app.logger.info(f"[{request.remote_addr}] /gh_metrics_and_render: Sending JSON response with Base64 image and metrics.")
+        return jsonify(response_payload), HTTPStatus.OK.value
 
     except Exception as e:
         app.logger.error(f"Error in /gh_metrics_and_render: {e}", exc_info=True)
         return jsonify({"error": f"Error during metrics calculation or final rendering: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
-
 
 
 @app.route('/df_gh_orchestrator', methods=['POST'])
@@ -429,120 +431,108 @@ def df_gh_orchestrator_route():
         app.logger.error("Orchestrator: Service not available due to initialization failure.")
         return jsonify({"error": "Orchestration service not available (initialization failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
     
-    # Lists to store results from parallel processing
+    form_data = request.form
     value_matrices_from_pipeline = []
     non_white_masks_from_pipeline = []
 
-    form_data = request.form
-
     ### Metadata extraction and validation
     try:
-        # Number of windows / pictures
         num_images_gh_str = form_data.get('num_images')
         if not num_images_gh_str:
+            app.logger.warning("Orchestrator: Missing 'num_images' in form data.")
             return jsonify({"error": "Missing 'num_images' in form data.", "success": False}), HTTPStatus.BAD_REQUEST.value
         
         num_images_gh = int(num_images_gh_str)
         if not (isinstance(num_images_gh, int) and num_images_gh > 0):
+            app.logger.warning(f"Orchestrator: 'num_images' must be a positive integer, got {num_images_gh_str}")
             return jsonify({"error": "'num_images' must be a positive integer.", "success": False}), HTTPStatus.BAD_REQUEST.value
 
-        app.logger.info(f"Orchestrator received request for {num_images_gh} image(s).")
+        app.logger.info(f"Orchestrator received request from {request.remote_addr} for {num_images_gh} image(s).")
 
         if not request.files:
+            app.logger.warning("Orchestrator: No image files found in request.")
             return jsonify({"error": "No image files found in request.", "success": False}), HTTPStatus.BAD_REQUEST.value
         
         temp_files_dict = {k: v for k, v in request.files.items()}
         if len(temp_files_dict) != num_images_gh:
+            app.logger.warning(f"Orchestrator: File count mismatch. Expected {num_images_gh}, got {len(temp_files_dict)}.")
             return jsonify({"error": f"Number of received image files ({len(temp_files_dict)}) does not match num_images ({num_images_gh}).", "success": False}), HTTPStatus.BAD_REQUEST.value
         
-        try: # Sort by Suffix (e.g., floorplan0.png, floorplan1.png)
+        try: 
             sorted_filenames = sorted(temp_files_dict.keys(), key=lambda x: int(x.replace('floorplan','').replace('.png','')))
         except ValueError: 
+            app.logger.warning("Orchestrator: Image filenames not in expected format 'floorplanX.png'.")
             return jsonify({"error": "Image filenames not in expected format 'floorplanX.png' (e.g., 'floorplan0.png').", "success": False}), HTTPStatus.BAD_REQUEST.value
         
         input_images_bytes_list = [temp_files_dict[fname].read() for fname in sorted_filenames]
-        app.logger.info(f"Orchestrator successfully parsed {num_images_gh} images and their metadata.")
 
-        # Rotation for Alignment
         rotations_rad_gh_str = form_data.get('rotations_rad')
-        # Translation for Alignment
         translations_mm_gh_str = form_data.get('translations_mm')
 
         if not rotations_rad_gh_str or not translations_mm_gh_str:
             missing = []
             if not rotations_rad_gh_str: missing.append("'rotations_rad'")
             if not translations_mm_gh_str: missing.append("'translations_mm'")
+            app.logger.warning(f"Orchestrator: Missing metadata: {', '.join(missing)}.")
             return jsonify({"error": f"Missing metadata: {', '.join(missing)} in form data.", "success": False}), HTTPStatus.BAD_REQUEST.value
 
         try:
-            # Parse JSON to py-lists
             rotations_rad_gh = json.loads(rotations_rad_gh_str)
             translations_mm_gh = json.loads(translations_mm_gh_str)
 
-            # Validate whether they are lists and the length matches num_images
             if not (isinstance(rotations_rad_gh, list) and len(rotations_rad_gh) == num_images_gh and \
                     isinstance(translations_mm_gh, list) and len(translations_mm_gh) == num_images_gh):
+                app.logger.warning("Orchestrator: Rotations/Translations must be lists matching num_images count.")
                 raise TypeError("Rotations/Translations must be lists matching num_images count.")
-            # Optional deeper validation for translation structure could be added here if needed
-            # e.g., if not all(isinstance(t, list) and len(t) >= 2 for t in translations_mm_gh):
-            # raise TypeError("Each translation must be a list of coordinates (e.g., [x, y, z]).")
-
         except (json.JSONDecodeError, TypeError) as e:
             app.logger.error(f"Orchestrator: Error parsing rotations/translations from form data: {e}", exc_info=True)
             return jsonify({"error": f"Invalid format for rotations_rad or translations_mm: Must be valid JSON lists. {str(e)}", "success": False}), HTTPStatus.BAD_REQUEST.value
-
+        app.logger.info(f"Orchestrator successfully parsed {num_images_gh} images and their metadata.")
     except (TypeError, ValueError) as e: 
         app.logger.error(f"Orchestrator: Error parsing input data: {e}", exc_info=True)
         return jsonify({"error": f"Invalid input data format: {str(e)}", "success": False}), HTTPStatus.BAD_REQUEST.value
-    except Exception as e:
-        app.logger.error(f"Orchestrator: Error during initial data processing: {e}", exc_info=True)
+    except Exception as e: # Fallback für unerwartete Fehler bei der initialen Datenverarbeitung
+        app.logger.error(f"Orchestrator: Unexpected error during initial data processing: {e}", exc_info=True)
         return jsonify({"error": f"Orchestrator setup error: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
     
     ### Parallel Processing: ML-Inference -> Alignment -> Value Matrix Generation for each image
     app.logger.info(f"Orchestrator: Starting parallel pipeline for {num_images_gh} images.")
     
     futures = []
-    # Determine number of workers for the ThreadPoolExecutor
-    num_workers = min(num_images_gh, (os.cpu_count() or 1) * 5) 
+    num_workers = min(num_images_gh, (os.cpu_count() or 1) * 5) # Begrenzung der Worker
     app.logger.info(f"Orchestrator: Using up to {num_workers} workers for parallel image processing.")
 
-    # This outer try-except block is for orchestrator-level issues during the parallel submission or final aggregation/rendering.
-    # Errors within individual pipeline tasks are handled inside the future.result() loop.
     try:
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             for i in range(num_images_gh):
-                # Submit each image processing task to the executor
                 future = executor.submit(
-                    process_single_image_pipeline, # The new helper function defined above
-                    i,                             # Index of the image for tracking/logging
+                    process_single_image_pipeline,
+                    i,
                     input_images_bytes_list[i],
                     sorted_filenames[i],
                     rotations_rad_gh[i],
                     translations_mm_gh[i],
-                    SERVER_BASE_URL,        # Pass SERVER_BASE_URL (global)
-                    gan_known_colors_lab,   # Pass gan_known_colors_lab (global)
-                    gan_known_values        # Pass gan_known_values (global)
+                    SERVER_BASE_URL, 
+                    gan_known_colors_lab, 
+                    gan_known_values
                 )
                 futures.append(future)
 
-            # Collect results as they complete
             for future in as_completed(futures):
                 try:
-                    v_matrix_np, nw_mask_np, processed_idx = future.result() # This will re-raise exceptions from the task
+                    v_matrix_np, nw_mask_np, processed_idx = future.result()
                     value_matrices_from_pipeline.append(v_matrix_np)
                     non_white_masks_from_pipeline.append(nw_mask_np)
-                    app.logger.info(f"Orchestrator: Pipeline Task {processed_idx} completed successfully.")
+                    app.logger.info(f"Orchestrator: Pipeline Task {processed_idx} for '{sorted_filenames[processed_idx]}' completed successfully.")
                 except Exception as e_future:
-                    # An error occurred in one of the pipeline tasks
-                    app.logger.error(f"Orchestrator: A pipeline task failed catastrophically: {e_future}", exc_info=False) # exc_info=False as e_future contains details
-                    # Fail the entire orchestration if any sub-task fails
+                    # Ein Fehler in einer der Pipeline-Aufgaben ist aufgetreten
+                    app.logger.error(f"Orchestrator: A pipeline task failed catastrophically: {e_future}", exc_info=False)
                     return jsonify({
                         "error": "Orchestrator error: A sub-task in the parallel image processing pipeline failed.",
-                        "details": str(e_future), # Contains details from the failing pipeline task
+                        "details": str(e_future),
                         "success": False
                     }), HTTPStatus.INTERNAL_SERVER_ERROR.value
         
-        # Check if all images were processed (e.g., no unexpected errors that didn't get caught above)
         if len(value_matrices_from_pipeline) != num_images_gh:
             app.logger.error(f"Orchestrator: Mismatch in expected ({num_images_gh}) and processed ({len(value_matrices_from_pipeline)}) images after parallel pipeline.")
             return jsonify({
@@ -557,55 +547,55 @@ def df_gh_orchestrator_route():
         summed_values_np, combined_mask_np = aggregate_multiple_value_matrices_gan(
             value_matrices_from_pipeline,
             non_white_masks_from_pipeline,
-            EXPECTED_ML_IMG_SIZE # Global constant
+            EXPECTED_ML_IMG_SIZE
         )
         app.logger.info(f"Orchestrator: Aggregation complete. Summed values shape: {summed_values_np.shape}, Combined mask non-white pixels: {np.sum(combined_mask_np)}")
 
         ### Calculate Metrics and render final picture ---
-        # Construct payload for the /gh_metrics_and_render endpoint
         payload_for_metrics_render_step = {
-            "summed_value_matrix": summed_values_np.tolist(),     # Convert NumPy array to list for JSON
-            "combined_non_white_mask": combined_mask_np.tolist()  # Convert NumPy array to list for JSON
+            "summed_value_matrix": summed_values_np.tolist(),
+            "combined_non_white_mask": combined_mask_np.tolist()
         }
         app.logger.info(f"Orchestrator: Calling /gh_metrics_and_render with aggregated value data.")
+        
         final_processing_response_object = internal_post_json_to_endpoint(
-            f"{SERVER_BASE_URL}/gh_metrics_and_render", # SERVER_BASE_URL is global
+            f"{SERVER_BASE_URL}/gh_metrics_and_render",
             payload_for_metrics_render_step
         )
-        app.logger.info(f"Orchestrator: /gh_metrics_and_render responded with final image and metrics.")
+        # internal_post_json_to_endpoint löst bei Fehlern bereits eine Exception aus (response.raise_for_status())
+        # Daher wird hier davon ausgegangen, dass der Aufruf erfolgreich war.
+        metrics_render_data = final_processing_response_object.json()
+        app.logger.info(f"Orchestrator: /gh_metrics_and_render responded.")
 
-        ### Send final picture and headers to Grasshopper
-        grasshopper_final_response = make_response(final_processing_response_object.content)
-        # Transfer relevant headers from the internal response to the final response
-        for header_key in ['Content-Type', 'X-Processing-Success', 'X-Average-Value', 'X-Ratio-Pixels-GT1', 'Content-Disposition']:
-            if header_key in final_processing_response_object.headers:
-                grasshopper_final_response.headers[header_key] = final_processing_response_object.headers[header_key]
+
+        ### Send final JSON response to Grasshopper ###
+        # Diese Struktur muss dem entsprechen, was das Grasshopper-Skript erwartet.
+        response_to_gh = {
+            "success": metrics_render_data.get("success", False),
+            "filename": metrics_render_data.get("filename"), # Wird vom GH-Skript zum Speichern verwendet
+            "image_base64": metrics_render_data.get("image_base64"),
+            "mimetype": metrics_render_data.get("mimetype", "image/png"), # Sollte immer image/png sein
+            "metrics": metrics_render_data.get("metrics"), # Enthält average_value und ratio_gt1
+            "message": metrics_render_data.get("message", "Orchestration completed successfully.")
+        }
         
-        # Fallback for Content-Disposition if not set by the metrics_and_render endpoint
-        if 'Content-Disposition' not in grasshopper_final_response.headers:
-            # FINAL_OUTPUT_IMG_SIZE is a global tuple e.g., (128,128)
-            grasshopper_final_response.headers['Content-Disposition'] = f'attachment; filename=final_orchestrated_output_{FINAL_OUTPUT_IMG_SIZE[0]}x{FINAL_OUTPUT_IMG_SIZE[1]}.png'
+        if response_to_gh.get("success"):
+            app.logger.info(f"Orchestrator: Successfully processed request. Metrics: {response_to_gh.get('metrics')}. Sending JSON response to Grasshopper.")
+        else:
+            app.logger.warning(f"Orchestrator: Processing chain reported failure. Details: {response_to_gh.get('message')}. Sending JSON error to Grasshopper.")
+        
+        return jsonify(response_to_gh), HTTPStatus.OK.value # OK, auch wenn success=False im Payload, da der Orchestrator selbst gelaufen ist
 
-        app.logger.info("Orchestrator: Successfully processed request through all stages. Sending final response to Grasshopper.")
-        return grasshopper_final_response
-
-    # Exception handling for HTTPError from internal calls made *directly by the orchestrator*
-    # (e.g., the call to /gh_metrics_and_render).
-    # Errors from pipeline tasks submitted to ThreadPoolExecutor are caught in the as_completed loop.
     except requests.exceptions.HTTPError as e_http_orch:
         response_details = {}
-        failed_url = e_http_orch.request.url if e_http_orch.request else "Unknown URL during orchestrator's internal call"
+        failed_url = e_http_orch.request.url if e_http_orch.request else "Unknown URL (orchestrator direct call)"
         try:
             response_details = e_http_orch.response.json()
             error_content_for_log = response_details.get("error", e_http_orch.response.text[:200])
         except (json.JSONDecodeError, ValueError):
             error_content_for_log = e_http_orch.response.text[:200]
             response_details = {"raw_error_response": error_content_for_log}
-
-        app.logger.error(
-            f"Orchestrator: HTTPError during direct internal call to {failed_url} - Status {e_http_orch.response.status_code} - Details: {error_content_for_log}",
-            exc_info=True 
-        )
+        app.logger.error(f"Orchestrator: HTTPError during direct internal call to {failed_url} - Status {e_http_orch.response.status_code if e_http_orch.response is not None else 'N/A'} - Details: {error_content_for_log}", exc_info=True)
         status_code_to_return = e_http_orch.response.status_code if e_http_orch.response is not None else HTTPStatus.INTERNAL_SERVER_ERROR.value
         return jsonify({
             "error": "Internal service error during pipeline execution (orchestrator direct call).",
@@ -615,7 +605,6 @@ def df_gh_orchestrator_route():
             "success": False
         }), status_code_to_return
 
-    # Generic Fallback for orchestrator-level errors (e.g., issues with ThreadPoolExecutor setup, unexpected errors)
     except Exception as e_orch: 
         app.logger.error(f"Orchestrator: Unhandled exception during main processing: {str(e_orch)}", exc_info=True)
         return jsonify({
