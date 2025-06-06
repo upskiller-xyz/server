@@ -53,6 +53,8 @@ def test():
     
     return {"content": 1}
 
+
+
 ########## GH-ORCHESTRATOR ##########
 
 ### Configurations ###
@@ -368,35 +370,62 @@ def gh_images_to_values_route():
         return jsonify({"error": f"Error processing images to values: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
 
 
-
-@app.route('/gh_metrics_and_render', methods=['POST'])
-def gh_metrics_and_render_route():
+@app.route('/calculate_metrics', methods=['POST'])
+def calculate_metrics_route():
+    """
+    Calculates analysis metrics from a value matrix and a mask.
+    This endpoint is only responsible for quantitative evaluation.
+    """
     if not INITIALIZATION_SUCCESSFUL:
         return jsonify({"error": "Service not available (init failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
 
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "No JSON data provided (expected summed_value_matrix and combined_non_white_mask).", "success": False}), HTTPStatus.BAD_REQUEST.value
-
-    summed_value_matrix_json = data.get('summed_value_matrix')
-    combined_non_white_mask_json = data.get('combined_non_white_mask')
-
-    if summed_value_matrix_json is None or combined_non_white_mask_json is None:
+    if not data or 'summed_value_matrix' not in data or 'combined_non_white_mask' not in data:
         return jsonify({"error": "Missing 'summed_value_matrix' or 'combined_non_white_mask' in JSON payload.", "success": False}), HTTPStatus.BAD_REQUEST.value
-    
-    app.logger.info(f"[{request.remote_addr}] /gh_metrics_and_render received value matrix for final processing.")
+
+    app.logger.info(f"[{request.remote_addr}] /calculate_metrics received request.")
     try:
-        values_np = np.array(summed_value_matrix_json, dtype=np.float32)
-        mask_np = np.array(combined_non_white_mask_json, dtype=bool)
+        values_np = np.array(data['summed_value_matrix'], dtype=np.float32)
+        mask_np = np.array(data['combined_non_white_mask'], dtype=bool)
 
         avg_value, ratio_gt1 = calculate_gan_metrics_from_values(values_np, mask_np)
+        
+        response_payload = {
+            "success": True,
+            "metrics": {
+                "average_value": round(avg_value, 5),
+                "ratio_gt1": round(ratio_gt1, 5)
+            },
+            "message": "Metrics calculated successfully."
+        }
+        app.logger.info(f"[{request.remote_addr}] /calculate_metrics: AvgValue={avg_value:.3f}, RatioGT1={ratio_gt1:.3f}")
+        return jsonify(response_payload), HTTPStatus.OK.value
+    except Exception as e:
+        app.logger.error(f"Error in /calculate_metrics: {e}", exc_info=True)
+        return jsonify({"error": f"Error during metrics calculation: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
+
+
+@app.route('/render_image', methods=['POST'])
+def render_image_route():
+    """
+    Renders a visualization image from a value matrix and mask.
+    This endpoint is only responsible for generating the prediction image.
+    """
+    if not INITIALIZATION_SUCCESSFUL:
+        return jsonify({"error": "Service not available (init failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
+
+    data = request.get_json()
+    if not data or 'summed_value_matrix' not in data or 'combined_non_white_mask' not in data:
+        return jsonify({"error": "Missing 'summed_value_matrix' or 'combined_non_white_mask' in JSON payload.", "success": False}), HTTPStatus.BAD_REQUEST.value
+
+    app.logger.info(f"[{request.remote_addr}] /render_image received request.")
+    try:
+        values_np = np.array(data['summed_value_matrix'], dtype=np.float32)
+        mask_np = np.array(data['combined_non_white_mask'], dtype=bool)
+
         final_image_pil_256 = render_final_gan_image_from_values(values_np, mask_np, EXPECTED_ML_IMG_SIZE, gan_value_map_reverse)
         
-        app.logger.info(f"[{request.remote_addr}] /gh_metrics_and_render: AvgValue={avg_value:.3f}, RatioGT1={ratio_gt1:.3f}")
-
-        app.logger.info(f"Resizing final image from {EXPECTED_ML_IMG_SIZE} to {FINAL_OUTPUT_IMG_SIZE} using NEAREST resampling...")
         final_image_to_send_pil_128 = final_image_pil_256.resize(FINAL_OUTPUT_IMG_SIZE, Image.Resampling.NEAREST)
-        app.logger.info(f"Image resized to {FINAL_OUTPUT_IMG_SIZE}.")
 
         img_byte_arr = io.BytesIO()
         final_image_to_send_pil_128.save(img_byte_arr, format='PNG')
@@ -404,25 +433,19 @@ def gh_metrics_and_render_route():
         image_base64_str = base64.b64encode(image_bytes).decode('utf-8')
 
         output_filename = f"final_rendered_image_{FINAL_OUTPUT_IMG_SIZE[0]}x{FINAL_OUTPUT_IMG_SIZE[1]}.png"
-
-        # JSON-Payload for answer
+        
         response_payload = {
             "success": True,
             "filename": output_filename,
             "image_base64": image_base64_str,
             "mimetype": "image/png",
-            "metrics": {
-                "average_value": round(avg_value, 5),
-                "ratio_gt1": round(ratio_gt1, 5)
-            },
-            "message": "Metrics calculated and image rendered successfully."
+            "message": "Image rendered successfully."
         }
-        app.logger.info(f"[{request.remote_addr}] /gh_metrics_and_render: Sending JSON response with Base64 image and metrics.")
+        app.logger.info(f"[{request.remote_addr}] /render_image: Successfully rendered and encoded image.")
         return jsonify(response_payload), HTTPStatus.OK.value
-
     except Exception as e:
-        app.logger.error(f"Error in /gh_metrics_and_render: {e}", exc_info=True)
-        return jsonify({"error": f"Error during metrics calculation or final rendering: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
+        app.logger.error(f"Error in /render_image: {e}", exc_info=True)
+        return jsonify({"error": f"Error during final rendering: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
 
 
 @app.route('/df_gh_orchestrator', methods=['POST'])
@@ -551,32 +574,53 @@ def df_gh_orchestrator_route():
         )
         app.logger.info(f"Orchestrator: Aggregation complete. Summed values shape: {summed_values_np.shape}, Combined mask non-white pixels: {np.sum(combined_mask_np)}")
 
-        ### Calculate Metrics and render final picture ---
-        payload_for_metrics_render_step = {
+        ### Calculate Metrics and Render Final Image in Parallel ###
+        payload_for_final_steps = {
             "summed_value_matrix": summed_values_np.tolist(),
             "combined_non_white_mask": combined_mask_np.tolist()
         }
-        app.logger.info(f"Orchestrator: Calling /gh_metrics_and_render with aggregated value data.")
         
-        final_processing_response_object = internal_post_json_to_endpoint(
-            f"{SERVER_BASE_URL}/gh_metrics_and_render",
-            payload_for_metrics_render_step
-        )
-        # internal_post_json_to_endpoint löst bei Fehlern bereits eine Exception aus (response.raise_for_status())
-        # Daher wird hier davon ausgegangen, dass der Aufruf erfolgreich war.
-        metrics_render_data = final_processing_response_object.json()
-        app.logger.info(f"Orchestrator: /gh_metrics_and_render responded.")
+        metrics_data = {}
+        render_data = {}
 
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            app.logger.info("Orchestrator: Calling /calculate_metrics and /render_image in parallel.")
+            
+            # Submit metrics calculation
+            future_metrics = executor.submit(
+                internal_post_json_to_endpoint, 
+                f"{SERVER_BASE_URL}/calculate_metrics", 
+                payload_for_final_steps
+            )
+            # Submit image rendering
+            future_render = executor.submit(
+                internal_post_json_to_endpoint, 
+                f"{SERVER_BASE_URL}/render_image", 
+                payload_for_final_steps
+            )
+            
+            # Wait for results and process them
+            metrics_response = future_metrics.result()
+            render_response = future_render.result()
+            
+            metrics_response.raise_for_status() # Will raise HTTPError if the call failed
+            render_response.raise_for_status()  # Will raise HTTPError if the call failed
+            
+            metrics_data = metrics_response.json()
+            render_data = render_response.json()
 
-        ### Send final JSON response to Grasshopper ###
-        # Diese Struktur muss dem entsprechen, was das Grasshopper-Skript erwartet.
+        app.logger.info("Orchestrator: Both metrics and render endpoints responded.")
+
+        ### Combine results and send final JSON response to the client ###
+        final_success = metrics_data.get("success", False) and render_data.get("success", False)
+        
         response_to_gh = {
-            "success": metrics_render_data.get("success", False),
-            "filename": metrics_render_data.get("filename"), # Wird vom GH-Skript zum Speichern verwendet
-            "image_base64": metrics_render_data.get("image_base64"),
-            "mimetype": metrics_render_data.get("mimetype", "image/png"), # Sollte immer image/png sein
-            "metrics": metrics_render_data.get("metrics"), # Enthält average_value und ratio_gt1
-            "message": metrics_render_data.get("message", "Orchestration completed successfully.")
+            "success": final_success,
+            "filename": render_data.get("filename"),
+            "image_base64": render_data.get("image_base64"),
+            "mimetype": render_data.get("mimetype", "image/png"),
+            "metrics": metrics_data.get("metrics"),
+            "message": "Orchestration completed." if final_success else "Orchestration failed in final processing step."
         }
         
         if response_to_gh.get("success"):
