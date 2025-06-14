@@ -163,11 +163,12 @@ def internal_post_image_to_endpoint(endpoint_url, image_data_bytes, image_filena
     Adjusts the file field name based on the target endpoint.
     """
     file_field_name = 'image_file'
-    files = {file_field_name: (image_filename, image_data_bytes, 'image/png')}
+    files = {file_field_name: (image_filename, 
+                               image_data_bytes, ö'image/png')}
 
     try:
-        log_data_info = f"(data keys: {list(additional_form_data.keys())})" if additional_form_data else "(no additional form data)"
-        app.logger.debug(f"Internal POST to {endpoint_url} with image '{image_filename}' (field: '{file_field_name}') {log_data_info}")
+        # log_data_info = f"(data keys: {list(additional_form_data.keys())})" if additional_form_data else "(no additional form data)"
+        # app.logger.debug(f"Internal POST to {endpoint_url} with image '{image_filename}' (field: '{file_field_name}') {log_data_info}")
         
         response = requests.post(endpoint_url, files=files, data=additional_form_data, timeout=timeout_seconds)
         
@@ -201,46 +202,46 @@ def process_single_image_pipeline(image_idx, input_image_bytes, original_filenam
     Returns (value_matrix_np, non_white_mask_np, image_idx) or throws an exception.
     """
     try:
-        app.logger.info(f"Pipeline Task {image_idx}: Start für Bild '{original_filename}'")
+        # app.logger.info(f"Pipeline Task {image_idx}: Start für Bild '{original_filename}'")
 
         # Step 1: Call ML reference
-        app.logger.info(f"Pipeline Task {image_idx}: Rufe /df_ml_inference für '{original_filename}' auf")
+        # app.logger.info(f"Pipeline Task {image_idx}: Rufe /df_ml_inference für '{original_filename}' auf")
         inference_response = internal_post_image_to_endpoint(f"{server_base_url_ref}/df_ml_inference", input_image_bytes, image_filename=original_filename)
         ml_output_bytes = inference_response.content
-        app.logger.info(f"Pipeline Task {image_idx}: ML-Inferenz für '{original_filename}' abgeschlossen.")
+        # app.logger.info(f"Pipeline Task {image_idx}: ML-Inferenz für '{original_filename}' abgeschlossen.")
 
         # Step 2: Call image alignment
         original_filename_stem = original_filename.replace('.png', '')
-        app.logger.info(f"Pipeline Task {image_idx}: Rufe /df_align für ML-Output von '{original_filename}' auf")
+        # app.logger.info(f"Pipeline Task {image_idx}: Rufe /df_align für ML-Output von '{original_filename}' auf")
         align_form_payload = {
             "rotation_rad": str(rotation_rad),
             "translation_mm_xyz": json.dumps(translation_mm_xyz) 
         }
         align_response = internal_post_image_to_endpoint(f"{server_base_url_ref}/df_align", ml_output_bytes, image_filename=f"ml_output_for_align_{original_filename_stem}.png", additional_form_data=align_form_payload)
         aligned_image_bytes = align_response.content
-        app.logger.info(f"Pipeline Task {image_idx}: Ausrichtung für '{original_filename}' abgeschlossen.")
+        # app.logger.info(f"Pipeline Task {image_idx}: Ausrichtung für '{original_filename}' abgeschlossen.")
 
         # Step 3: Create value matrix for single aligned image
-        app.logger.info(f"Pipeline Task {image_idx}: Erzeuge Wertematrix für ausgerichtetes Bild '{original_filename}'")
+        # app.logger.info(f"Pipeline Task {image_idx}: Erzeuge Wertematrix für ausgerichtetes Bild '{original_filename}'")
         aligned_image_pil_rgba = Image.open(io.BytesIO(aligned_image_bytes))
         
         v_matrix_np, nw_mask_np = generate_value_matrix_for_single_gan_image(aligned_image_pil_rgba, known_colors_lab_ref, known_values_ref)
-        app.logger.info(f"Pipeline Task {image_idx}: Wertematrix für '{original_filename}' erzeugt.")
+        # app.logger.info(f"Pipeline Task {image_idx}: Wertematrix für '{original_filename}' erzeugt.")
         return v_matrix_np, nw_mask_np, image_idx
 
-    except requests.exceptions.HTTPError as e_http:
-        failed_url = e_http.request.url if e_http.request else "Unbekannte URL in Pipeline"
-        error_content = "N/A"
-        try:
-            # #  extract the error details from the JSON response of the internal service
-            error_content = e_http.response.json().get("error", e_http.response.text[:200])
-        except (json.JSONDecodeError, ValueError): 
-            error_content = e_http.response.text[:200]
-        app.logger.error(f"Pipeline Task {image_idx} ('{original_filename}'): HTTPError beim internen Aufruf an {failed_url} - Status {e_http.response.status_code} - Details: {error_content}", exc_info=False)
-        raise Exception(f"Pipeline fehlgeschlagen für Bild {image_idx} ('{original_filename}') bei {failed_url}. Interner Service Fehler: {error_content} (Status: {e_http.response.status_code})") from e_http
-    except Exception as e_pipe:
-        app.logger.error(f"Pipeline Task {image_idx} ('{original_filename}'): Allgemeiner Fehler in der Verarbeitung: {e_pipe}", exc_info=True)
-        raise Exception(f"Pipeline fehlgeschlagen für Bild {image_idx} ('{original_filename}'): {str(e_pipe)}") from e_pipe
+    # except requests.exceptions.HTTPError as e_http:
+    #     failed_url = e_http.request.url if e_http.request else "Unbekannte URL in Pipeline"
+    #     error_content = "N/A"
+    #     try:
+    #         # #  extract the error details from the JSON response of the internal service
+    #         error_content = e_http.response.json().get("error", e_http.response.text[:200])
+    #     except (json.JSONDecodeError, ValueError): 
+    #         error_content = e_http.response.text[:200]
+    #     app.logger.error(f"Pipeline Task {image_idx} ('{original_filename}'): HTTPError beim internen Aufruf an {failed_url} - Status {e_http.response.status_code} - Details: {error_content}", exc_info=False)
+    #     raise Exception(f"Pipeline fehlgeschlagen für Bild {image_idx} ('{original_filename}') bei {failed_url}. Interner Service Fehler: {error_content} (Status: {e_http.response.status_code})") from e_http
+    # except Exception as e_pipe:
+    #     app.logger.error(f"Pipeline Task {image_idx} ('{original_filename}'): Allgemeiner Fehler in der Verarbeitung: {e_pipe}", exc_info=True)
+    #     raise Exception(f"Pipeline fehlgeschlagen für Bild {image_idx} ('{original_filename}'): {str(e_pipe)}") from e_pipe
 
 
 ### Endpoints Grasshopper Orchestrator  ###
@@ -287,23 +288,23 @@ def df_ml_inference_route():
 
 @app.route('/df_align', methods=['POST'])
 def df_align_route():
-    if not INITIALIZATION_SUCCESSFUL:
-        app.logger.error("/df_align: Service not available due to general initialization failure.")
-        return jsonify({"error": "Alignment service not available (init failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
+    # if not INITIALIZATION_SUCCESSFUL:
+    #     app.logger.error("/df_align: Service not available due to general initialization failure.")
+    #     return jsonify({"error": "Alignment service not available (init failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
 
     image_file = request.files.get('image_file') 
     rotation_rad_str = request.form.get('rotation_rad')
     translation_mm_xyz_str = request.form.get('translation_mm_xyz') # JSON-String "[x,y,z]"
 
-    if not all([image_file, rotation_rad_str, translation_mm_xyz_str]):
-        missing_fields = []
-        if not image_file: missing_fields.append("'image_file'")
-        if not rotation_rad_str: missing_fields.append("'rotation_rad'")
-        if not translation_mm_xyz_str: missing_fields.append("'translation_mm_xyz'")
-        return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}.", "success": False}), HTTPStatus.BAD_REQUEST.value
+    # if not all([image_file, rotation_rad_str, translation_mm_xyz_str]):
+    #     missing_fields = []
+    #     if not image_file: missing_fields.append("'image_file'")
+    #     if not rotation_rad_str: missing_fields.append("'rotation_rad'")
+    #     if not translation_mm_xyz_str: missing_fields.append("'translation_mm_xyz'")
+    #     return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}.", "success": False}), HTTPStatus.BAD_REQUEST.value
     
     original_filename = image_file.filename if image_file.filename else "unknown_image"
-    app.logger.info(f"[{request.remote_addr}] /df_align received image '{original_filename}' for alignment. R={rotation_rad_str}, T={translation_mm_xyz_str}")
+    # app.logger.info(f"[{request.remote_addr}] /df_align received image '{original_filename}' for alignment. R={rotation_rad_str}, T={translation_mm_xyz_str}")
 
     try:
         # Load RGBA from /df_ml_inference
@@ -312,8 +313,8 @@ def df_align_route():
         rotation_rad = float(rotation_rad_str)
         translation_mm_xyz = json.loads(translation_mm_xyz_str)
 
-        if not (isinstance(translation_mm_xyz, list) and len(translation_mm_xyz) >= 2 and all(isinstance(c, (int, float)) for c in translation_mm_xyz[:2])):
-             raise ValueError("translation_mm_xyz must be a list of at least two numbers, e.g., [x, y, z] or [x,y]")
+        # if not (isinstance(translation_mm_xyz, list) and len(translation_mm_xyz) >= 2 and all(isinstance(c, (int, float)) for c in translation_mm_xyz[:2])):
+        #      raise ValueError("translation_mm_xyz must be a list of at least two numbers, e.g., [x, y, z] or [x,y]")
 
         transformed_pil_rgba = align_df_image(image_pil_rgba, rotation_rad, translation_mm_xyz, EXPECTED_ML_IMG_SIZE, GAN_PIXELS_PER_MM_X_ML, GAN_PIXELS_PER_MM_Y_ML)
         
@@ -321,15 +322,15 @@ def df_align_route():
         transformed_pil_rgba.save(img_byte_arr, format='PNG')
         img_byte_arr.seek(0)
         
-        app.logger.info(f"[{request.remote_addr}] /df_align successfully aligned image '{original_filename}'.")
+        # app.logger.info(f"[{request.remote_addr}] /df_align successfully aligned image '{original_filename}'.")
         return send_file(img_byte_arr, mimetype='image/png', as_attachment=True, download_name=f"aligned_{original_filename}")
 
-    except ValueError as ve: #
-        app.logger.error(f"Error in /df_align due to invalid parameter format for '{original_filename}': {ve}", exc_info=True)
-        return jsonify({"error": f"Invalid parameter format: {str(ve)}", "success": False}), HTTPStatus.BAD_REQUEST.value
-    except Exception as e:
-        app.logger.error(f"Error during alignment for image '{original_filename}': {e}", exc_info=True)
-        return jsonify({"error": f"Image alignment processing error: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
+    # except ValueError as ve: #
+    #     app.logger.error(f"Error in /df_align due to invalid parameter format for '{original_filename}': {ve}", exc_info=True)
+    #     return jsonify({"error": f"Invalid parameter format: {str(ve)}", "success": False}), HTTPStatus.BAD_REQUEST.value
+    # except Exception as e:
+    #     app.logger.error(f"Error during alignment for image '{original_filename}': {e}", exc_info=True)
+    #     return jsonify({"error": f"Image alignment processing error: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
 
 
 
@@ -411,14 +412,14 @@ def render_image_route():
     Renders a visualization image from a value matrix and mask.
     This endpoint is only responsible for generating the prediction image.
     """
-    if not INITIALIZATION_SUCCESSFUL:
-        return jsonify({"error": "Service not available (init failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
+    # if not INITIALIZATION_SUCCESSFUL:
+    #     return jsonify({"error": "Service not available (init failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
 
     data = request.get_json()
-    if not data or 'summed_value_matrix' not in data or 'combined_non_white_mask' not in data:
-        return jsonify({"error": "Missing 'summed_value_matrix' or 'combined_non_white_mask' in JSON payload.", "success": False}), HTTPStatus.BAD_REQUEST.value
+    # if not data or 'summed_value_matrix' not in data or 'combined_non_white_mask' not in data:
+    #     return jsonify({"error": "Missing 'summed_value_matrix' or 'combined_non_white_mask' in JSON payload.", "success": False}), HTTPStatus.BAD_REQUEST.value
 
-    app.logger.info(f"[{request.remote_addr}] /render_image received request.")
+    # app.logger.info(f"[{request.remote_addr}] /render_image received request.")
     try:
         values_np = np.array(data['summed_value_matrix'], dtype=np.float32)
         mask_np = np.array(data['combined_non_white_mask'], dtype=bool)
@@ -441,85 +442,86 @@ def render_image_route():
             "mimetype": "image/png",
             "message": "Image rendered successfully."
         }
-        app.logger.info(f"[{request.remote_addr}] /render_image: Successfully rendered and encoded image.")
+        # app.logger.info(f"[{request.remote_addr}] /render_image: Successfully rendered and encoded image.")
         return jsonify(response_payload), HTTPStatus.OK.value
-    except Exception as e:
-        app.logger.error(f"Error in /render_image: {e}", exc_info=True)
-        return jsonify({"error": f"Error during final rendering: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
+    # except Exception as e:
+    #     app.logger.error(f"Error in /render_image: {e}", exc_info=True)
+    #     return jsonify({"error": f"Error during final rendering: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
 
 
 @app.route('/df_gh_orchestrator', methods=['POST'])
 def df_gh_orchestrator_route():
-    if not INITIALIZATION_SUCCESSFUL:
-        app.logger.error("Orchestrator: Service not available due to initialization failure.")
-        return jsonify({"error": "Orchestration service not available (initialization failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
+    # if not INITIALIZATION_SUCCESSFUL:
+    #     app.logger.error("Orchestrator: Service not available due to initialization failure.")
+    #     return jsonify({"error": "Orchestration service not available (initialization failed).", "success": False}), HTTPStatus.SERVICE_UNAVAILABLE.value
     
     form_data = request.form
+
     value_matrices_from_pipeline = []
     non_white_masks_from_pipeline = []
 
     ### Metadata extraction and validation
     try:
-        num_images_gh_str = form_data.get('num_images')
-        if not num_images_gh_str:
-            app.logger.warning("Orchestrator: Missing 'num_images' in form data.")
-            return jsonify({"error": "Missing 'num_images' in form data.", "success": False}), HTTPStatus.BAD_REQUEST.value
+        # num_images_gh_str = form_data.get('num_images')
+        # if not num_images_gh_str:
+        #     app.logger.warning("Orchestrator: Missing 'num_images' in form data.")
+        #     return jsonify({"error": "Missing 'num_images' in form data.", "success": False}), HTTPStatus.BAD_REQUEST.value
         
-        num_images_gh = int(num_images_gh_str)
-        if not (isinstance(num_images_gh, int) and num_images_gh > 0):
-            app.logger.warning(f"Orchestrator: 'num_images' must be a positive integer, got {num_images_gh_str}")
-            return jsonify({"error": "'num_images' must be a positive integer.", "success": False}), HTTPStatus.BAD_REQUEST.value
+        # num_images_gh = int(num_images_gh_str)
+        # if not (isinstance(num_images_gh, int) and num_images_gh > 0):
+        #     app.logger.warning(f"Orchestrator: 'num_images' must be a positive integer, got {num_images_gh_str}")
+        #     return jsonify({"error": "'num_images' must be a positive integer.", "success": False}), HTTPStatus.BAD_REQUEST.value
 
-        app.logger.info(f"Orchestrator received request from {request.remote_addr} for {num_images_gh} image(s).")
+        # app.logger.info(f"Orchestrator received request from {request.remote_addr} for {num_images_gh} image(s).")
 
-        if not request.files:
-            app.logger.warning("Orchestrator: No image files found in request.")
-            return jsonify({"error": "No image files found in request.", "success": False}), HTTPStatus.BAD_REQUEST.value
+        # if not request.files:
+        #     app.logger.warning("Orchestrator: No image files found in request.")
+        #     return jsonify({"error": "No image files found in request.", "success": False}), HTTPStatus.BAD_REQUEST.value
         
         temp_files_dict = {k: v for k, v in request.files.items()}
-        if len(temp_files_dict) != num_images_gh:
-            app.logger.warning(f"Orchestrator: File count mismatch. Expected {num_images_gh}, got {len(temp_files_dict)}.")
-            return jsonify({"error": f"Number of received image files ({len(temp_files_dict)}) does not match num_images ({num_images_gh}).", "success": False}), HTTPStatus.BAD_REQUEST.value
+        # if len(temp_files_dict) != num_images_gh:
+        #     app.logger.warning(f"Orchestrator: File count mismatch. Expected {num_images_gh}, got {len(temp_files_dict)}.")
+        #     return jsonify({"error": f"Number of received image files ({len(temp_files_dict)}) does not match num_images ({num_images_gh}).", "success": False}), HTTPStatus.BAD_REQUEST.value
         
         try: 
             sorted_filenames = sorted(temp_files_dict.keys(), key=lambda x: int(x.replace('floorplan','').replace('.png','')))
-        except ValueError: 
-            app.logger.warning("Orchestrator: Image filenames not in expected format 'floorplanX.png'.")
-            return jsonify({"error": "Image filenames not in expected format 'floorplanX.png' (e.g., 'floorplan0.png').", "success": False}), HTTPStatus.BAD_REQUEST.value
+        # except ValueError: 
+        #     app.logger.warning("Orchestrator: Image filenames not in expected format 'floorplanX.png'.")
+        #     return jsonify({"error": "Image filenames not in expected format 'floorplanX.png' (e.g., 'floorplan0.png').", "success": False}), HTTPStatus.BAD_REQUEST.value
         
         input_images_bytes_list = [temp_files_dict[fname].read() for fname in sorted_filenames]
 
         rotations_rad_gh_str = form_data.get('rotations_rad')
         translations_mm_gh_str = form_data.get('translations_mm')
 
-        if not rotations_rad_gh_str or not translations_mm_gh_str:
-            missing = []
-            if not rotations_rad_gh_str: missing.append("'rotations_rad'")
-            if not translations_mm_gh_str: missing.append("'translations_mm'")
-            app.logger.warning(f"Orchestrator: Missing metadata: {', '.join(missing)}.")
-            return jsonify({"error": f"Missing metadata: {', '.join(missing)} in form data.", "success": False}), HTTPStatus.BAD_REQUEST.value
+        # if not rotations_rad_gh_str or not translations_mm_gh_str:
+        #     missing = []
+        #     if not rotations_rad_gh_str: missing.append("'rotations_rad'")
+        #     if not translations_mm_gh_str: missing.append("'translations_mm'")
+        #     app.logger.warning(f"Orchestrator: Missing metadata: {', '.join(missing)}.")
+        #     return jsonify({"error": f"Missing metadata: {', '.join(missing)} in form data.", "success": False}), HTTPStatus.BAD_REQUEST.value
 
         try:
             rotations_rad_gh = json.loads(rotations_rad_gh_str)
             translations_mm_gh = json.loads(translations_mm_gh_str)
 
-            if not (isinstance(rotations_rad_gh, list) and len(rotations_rad_gh) == num_images_gh and \
-                    isinstance(translations_mm_gh, list) and len(translations_mm_gh) == num_images_gh):
-                app.logger.warning("Orchestrator: Rotations/Translations must be lists matching num_images count.")
-                raise TypeError("Rotations/Translations must be lists matching num_images count.")
-        except (json.JSONDecodeError, TypeError) as e:
-            app.logger.error(f"Orchestrator: Error parsing rotations/translations from form data: {e}", exc_info=True)
-            return jsonify({"error": f"Invalid format for rotations_rad or translations_mm: Must be valid JSON lists. {str(e)}", "success": False}), HTTPStatus.BAD_REQUEST.value
-        app.logger.info(f"Orchestrator successfully parsed {num_images_gh} images and their metadata.")
-    except (TypeError, ValueError) as e: 
-        app.logger.error(f"Orchestrator: Error parsing input data: {e}", exc_info=True)
-        return jsonify({"error": f"Invalid input data format: {str(e)}", "success": False}), HTTPStatus.BAD_REQUEST.value
-    except Exception as e: # Fallback für unerwartete Fehler bei der initialen Datenverarbeitung
-        app.logger.error(f"Orchestrator: Unexpected error during initial data processing: {e}", exc_info=True)
-        return jsonify({"error": f"Orchestrator setup error: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
+            # if not (isinstance(rotations_rad_gh, list) and len(rotations_rad_gh) == num_images_gh and \
+            #         isinstance(translations_mm_gh, list) and len(translations_mm_gh) == num_images_gh):
+            #     app.logger.warning("Orchestrator: Rotations/Translations must be lists matching num_images count.")
+            #     raise TypeError("Rotations/Translations must be lists matching num_images count.")
+        # except (json.JSONDecodeError, TypeError) as e:
+        #     app.logger.error(f"Orchestrator: Error parsing rotations/translations from form data: {e}", exc_info=True)
+        #     return jsonify({"error": f"Invalid format for rotations_rad or translations_mm: Must be valid JSON lists. {str(e)}", "success": False}), HTTPStatus.BAD_REQUEST.value
+        # app.logger.info(f"Orchestrator successfully parsed {num_images_gh} images and their metadata.")
+    # except (TypeError, ValueError) as e: 
+    #     app.logger.error(f"Orchestrator: Error parsing input data: {e}", exc_info=True)
+    #     return jsonify({"error": f"Invalid input data format: {str(e)}", "success": False}), HTTPStatus.BAD_REQUEST.value
+    # except Exception as e: # Fallback für unerwartete Fehler bei der initialen Datenverarbeitung
+    #     app.logger.error(f"Orchestrator: Unexpected error during initial data processing: {e}", exc_info=True)
+    #     return jsonify({"error": f"Orchestrator setup error: {str(e)}", "success": False}), HTTPStatus.INTERNAL_SERVER_ERROR.value
     
     ### Parallel Processing: ML-Inference -> Alignment -> Value Matrix Generation for each image
-    app.logger.info(f"Orchestrator: Starting parallel pipeline for {num_images_gh} images.")
+    # app.logger.info(f"Orchestrator: Starting parallel pipeline for {num_images_gh} images.")
     
     futures = []
     num_workers = min(num_images_gh, (os.cpu_count() or 1) * 5) # Begrenzung der Worker
@@ -547,32 +549,32 @@ def df_gh_orchestrator_route():
                     value_matrices_from_pipeline.append(v_matrix_np)
                     non_white_masks_from_pipeline.append(nw_mask_np)
                     app.logger.info(f"Orchestrator: Pipeline Task {processed_idx} for '{sorted_filenames[processed_idx]}' completed successfully.")
-                except Exception as e_future:
-                    # Ein Fehler in einer der Pipeline-Aufgaben ist aufgetreten
-                    app.logger.error(f"Orchestrator: A pipeline task failed catastrophically: {e_future}", exc_info=False)
-                    return jsonify({
-                        "error": "Orchestrator error: A sub-task in the parallel image processing pipeline failed.",
-                        "details": str(e_future),
-                        "success": False
-                    }), HTTPStatus.INTERNAL_SERVER_ERROR.value
+                # except Exception as e_future:
+                #     # Ein Fehler in einer der Pipeline-Aufgaben ist aufgetreten
+                #     app.logger.error(f"Orchestrator: A pipeline task failed catastrophically: {e_future}", exc_info=False)
+                #     return jsonify({
+                #         "error": "Orchestrator error: A sub-task in the parallel image processing pipeline failed.",
+                #         "details": str(e_future),
+                #         "success": False
+                #     }), HTTPStatus.INTERNAL_SERVER_ERROR.value
         
-        if len(value_matrices_from_pipeline) != num_images_gh:
-            app.logger.error(f"Orchestrator: Mismatch in expected ({num_images_gh}) and processed ({len(value_matrices_from_pipeline)}) images after parallel pipeline.")
-            return jsonify({
-                "error": "Orchestrator error: Not all images were processed successfully in the pipeline.",
-                "success": False
-            }), HTTPStatus.INTERNAL_SERVER_ERROR.value
+        # if len(value_matrices_from_pipeline) != num_images_gh:
+        #     app.logger.error(f"Orchestrator: Mismatch in expected ({num_images_gh}) and processed ({len(value_matrices_from_pipeline)}) images after parallel pipeline.")
+        #     return jsonify({
+        #         "error": "Orchestrator error: Not all images were processed successfully in the pipeline.",
+        #         "success": False
+        #     }), HTTPStatus.INTERNAL_SERVER_ERROR.value
 
-        app.logger.info(f"Orchestrator: Parallel pipeline processing completed for all {num_images_gh} images.")
+        # app.logger.info(f"Orchestrator: Parallel pipeline processing completed for all {num_images_gh} images.")
 
         ### Aggregate Value Matrices (directly in the orchestrator)
-        app.logger.info(f"Orchestrator: Aggregating {len(value_matrices_from_pipeline)} value matrices.")
+        # app.logger.info(f"Orchestrator: Aggregating {len(value_matrices_from_pipeline)} value matrices.")
         summed_values_np, combined_mask_np = aggregate_multiple_value_matrices_gan(
             value_matrices_from_pipeline,
             non_white_masks_from_pipeline,
             EXPECTED_ML_IMG_SIZE
         )
-        app.logger.info(f"Orchestrator: Aggregation complete. Summed values shape: {summed_values_np.shape}, Combined mask non-white pixels: {np.sum(combined_mask_np)}")
+        # app.logger.info(f"Orchestrator: Aggregation complete. Summed values shape: {summed_values_np.shape}, Combined mask non-white pixels: {np.sum(combined_mask_np)}")
 
         ### Calculate Metrics and Render Final Image in Parallel ###
         payload_for_final_steps = {
@@ -584,7 +586,7 @@ def df_gh_orchestrator_route():
         render_data = {}
 
         with ThreadPoolExecutor(max_workers=2) as executor:
-            app.logger.info("Orchestrator: Calling /calculate_metrics and /render_image in parallel.")
+            # app.logger.info("Orchestrator: Calling /calculate_metrics and /render_image in parallel.")
             
             # Submit metrics calculation
             future_metrics = executor.submit(
@@ -609,7 +611,7 @@ def df_gh_orchestrator_route():
             metrics_data = metrics_response.json()
             render_data = render_response.json()
 
-        app.logger.info("Orchestrator: Both metrics and render endpoints responded.")
+        # app.logger.info("Orchestrator: Both metrics and render endpoints responded.")
 
         ### Combine results and send final JSON response to the client ###
         final_success = metrics_data.get("success", False) and render_data.get("success", False)
@@ -630,32 +632,32 @@ def df_gh_orchestrator_route():
         
         return jsonify(response_to_gh), HTTPStatus.OK.value # OK, auch wenn success=False im Payload, da der Orchestrator selbst gelaufen ist
 
-    except requests.exceptions.HTTPError as e_http_orch:
-        response_details = {}
-        failed_url = e_http_orch.request.url if e_http_orch.request else "Unknown URL (orchestrator direct call)"
-        try:
-            response_details = e_http_orch.response.json()
-            error_content_for_log = response_details.get("error", e_http_orch.response.text[:200])
-        except (json.JSONDecodeError, ValueError):
-            error_content_for_log = e_http_orch.response.text[:200]
-            response_details = {"raw_error_response": error_content_for_log}
-        app.logger.error(f"Orchestrator: HTTPError during direct internal call to {failed_url} - Status {e_http_orch.response.status_code if e_http_orch.response is not None else 'N/A'} - Details: {error_content_for_log}", exc_info=True)
-        status_code_to_return = e_http_orch.response.status_code if e_http_orch.response is not None else HTTPStatus.INTERNAL_SERVER_ERROR.value
-        return jsonify({
-            "error": "Internal service error during pipeline execution (orchestrator direct call).",
-            "details": response_details, 
-            "failed_service_url": failed_url,
-            "internal_status_code": e_http_orch.response.status_code if e_http_orch.response is not None else None,
-            "success": False
-        }), status_code_to_return
+    # except requests.exceptions.HTTPError as e_http_orch:
+    #     response_details = {}
+    #     failed_url = e_http_orch.request.url if e_http_orch.request else "Unknown URL (orchestrator direct call)"
+    #     try:
+    #         response_details = e_http_orch.response.json()
+    #         error_content_for_log = response_details.get("error", e_http_orch.response.text[:200])
+    #     except (json.JSONDecodeError, ValueError):
+    #         error_content_for_log = e_http_orch.response.text[:200]
+    #         response_details = {"raw_error_response": error_content_for_log}
+    #     app.logger.error(f"Orchestrator: HTTPError during direct internal call to {failed_url} - Status {e_http_orch.response.status_code if e_http_orch.response is not None else 'N/A'} - Details: {error_content_for_log}", exc_info=True)
+    #     status_code_to_return = e_http_orch.response.status_code if e_http_orch.response is not None else HTTPStatus.INTERNAL_SERVER_ERROR.value
+    #     return jsonify({
+    #         "error": "Internal service error during pipeline execution (orchestrator direct call).",
+    #         "details": response_details, 
+    #         "failed_service_url": failed_url,
+    #         "internal_status_code": e_http_orch.response.status_code if e_http_orch.response is not None else None,
+    #         "success": False
+    #     }), status_code_to_return
 
-    except Exception as e_orch: 
-        app.logger.error(f"Orchestrator: Unhandled exception during main processing: {str(e_orch)}", exc_info=True)
-        return jsonify({
-            "error": "Orchestrator internal error.",
-            "details": str(e_orch),
-            "success": False
-        }), HTTPStatus.INTERNAL_SERVER_ERROR.value
+    # except Exception as e_orch: 
+    #     app.logger.error(f"Orchestrator: Unhandled exception during main processing: {str(e_orch)}", exc_info=True)
+    #     return jsonify({
+    #         "error": "Orchestrator internal error.",
+    #         "details": str(e_orch),
+    #         "success": False
+    #     }), HTTPStatus.INTERNAL_SERVER_ERROR.value
 
 ########################################################################################################
 

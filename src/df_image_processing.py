@@ -147,13 +147,13 @@ def aggregate_multiple_value_matrices_gan(value_matrices_list_np, non_white_mask
     """
     Sums a list of value matrices and combines their masks by logical OR.
     """
-    if not value_matrices_list_np:
-        logger.warning("No value matrices provided for GAN aggregation.")
-        # Return of empty or appropriately sized zero arrays, based on GAN_EXPECTED_ML_IMG_SIZE
-        h, w = image_size_wh_for_fallback[1], image_size_wh_for_fallback[0] # Pillow (W,H) -> Numpy (H,W)
-        return np.zeros((h,w), dtype=np.float64), np.zeros((h,w), dtype=bool)
+    # if not value_matrices_list_np:
+    #     logger.warning("No value matrices provided for GAN aggregation.")
+    #     # Return of empty or appropriately sized zero arrays, based on GAN_EXPECTED_ML_IMG_SIZE
+    #     h, w = image_size_wh_for_fallback[1], image_size_wh_for_fallback[0] # Pillow (W,H) -> Numpy (H,W)
+    #     return np.zeros((h,w), dtype=np.float64), np.zeros((h,w), dtype=bool)
 
-    logger.debug(f"Aggregating {len(value_matrices_list_np)} GAN value matrices.")
+    # logger.debug(f"Aggregating {len(value_matrices_list_np)} GAN value matrices.")
     
     # Make sure that all matrices have the same shape before stacking
     
@@ -170,7 +170,7 @@ def aggregate_multiple_value_matrices_gan(value_matrices_list_np, non_white_mask
         return np.zeros((h,w), dtype=np.float64), np.zeros((h,w), dtype=bool)
         # raise ValueError("Shape mismatch during aggregation") from e
 
-    logger.debug(f"GAN Aggregation complete. Summed values shape: {summed_values_np.shape}, Combined mask non-white pixels: {np.sum(combined_mask_np)}")
+    # logger.debug(f"GAN Aggregation complete. Summed values shape: {summed_values_np.shape}, Combined mask non-white pixels: {np.sum(combined_mask_np)}")
     return summed_values_np, combined_mask_np
 
 
@@ -206,20 +206,20 @@ def render_final_gan_image_from_values(
     based on the value matrix.
     """
     height, width = image_size_wh[1], image_size_wh[0] # Numpy-Reihenfolge (H,W)
-    logger.info(f"Rendering final GAN image from values (vectorized). Target image size: ({width}x{height})")
+    # logger.info(f"Rendering final GAN image from values (vectorized). Target image size: ({width}x{height})")
 
-    if not value_map_reverse:
-        logger.warning("value_map_reverse is empty! Returning a default white image.")
-        return Image.new("RGB", image_size_wh, (255, 255, 255))
+    # if not value_map_reverse:
+    #     logger.warning("value_map_reverse is empty! Returning a default white image.")
+    #     return Image.new("RGB", image_size_wh, (255, 255, 255))
 
     # 1. Value Matrix
     values_flat = values_np.ravel() # Shape: (H*W,)
 
     # Create lookup arrays from value_map_reverse
     available_map_keys_sorted = sorted(list(value_map_reverse.keys()))
-    if not available_map_keys_sorted:
-         logger.warning("value_map_reverse has no keys after sorting! Returning a default white image.")
-         return Image.new("RGB", image_size_wh, (255, 255, 255))
+    # if not available_map_keys_sorted:
+    #      logger.warning("value_map_reverse has no keys after sorting! Returning a default white image.")
+    #      return Image.new("RGB", image_size_wh, (255, 255, 255))
 
     available_vals_np = np.asarray(available_map_keys_sorted, dtype=np.float64) # Shape: (K,)
 
