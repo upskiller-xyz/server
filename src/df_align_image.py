@@ -10,7 +10,7 @@ def align_df_image(image_pil_rgba: Image.Image, rotation_rad: float, translation
     Transforms (rotates, moves) a single RGBA PIL image.
     Empty areas are filled with white.
     """
-    logger.debug(f"Aligning image. Input size: {image_pil_rgba.size}, Target output size: {target_image_size_wh}, Rotation (rad): {rotation_rad:.3f}, Translation (mm): {translation_gh_mm_xyz}")
+    # logger.debug(f"Aligning image. Input size: {image_pil_rgba.size}, Target output size: {target_image_size_wh}, Rotation (rad): {rotation_rad:.3f}, Translation (mm): {translation_gh_mm_xyz}")
     
     try:
         white_background_rgba = Image.new("RGBA", target_image_size_wh, (255, 255, 255, 255))
@@ -26,7 +26,7 @@ def align_df_image(image_pil_rgba: Image.Image, rotation_rad: float, translation
         # a, b, c
         # d, e, f
         affine_matrix_translation_only = (1, 0, param_c_pil, 0, 1, param_f_pil)
-        logger.debug(f"Affine translation params (corrected): c={param_c_pil:.2f}px, f={param_f_pil:.2f}px (angle_deg={angle_deg:.2f})")
+        # logger.debug(f"Affine translation params (corrected): c={param_c_pil:.2f}px, f={param_f_pil:.2f}px (angle_deg={angle_deg:.2f})")
 
         try: # Newer
              transform_method = Image.AFFINE
@@ -42,8 +42,8 @@ def align_df_image(image_pil_rgba: Image.Image, rotation_rad: float, translation
         
         final_aligned_image_pil_rgba = Image.alpha_composite(white_background_rgba, transformed_content_on_transparent_bg)
         
-        logger.debug(f"Alignment complete. Output image mode: {final_aligned_image_pil_rgba.mode}, size: {final_aligned_image_pil_rgba.size}")
+        # logger.debug(f"Alignment complete. Output image mode: {final_aligned_image_pil_rgba.mode}, size: {final_aligned_image_pil_rgba.size}")
         return final_aligned_image_pil_rgba
-    except Exception as e:
-        logger.error(f"Error during image alignment: {e}", exc_info=True)
-        raise
+    # except Exception as e:
+    #     logger.error(f"Error during image alignment: {e}", exc_info=True)
+    #     raise
