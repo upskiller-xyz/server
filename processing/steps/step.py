@@ -29,7 +29,7 @@ class ImageCombineStep(Step):
     @classmethod
     def _run(cls, inp:PipelineInput, config:PipelineConfig=PipelineConfig.default())->PipelineInput:
         
-        return inp
+        return ImageTransformer.combine(inp.value)
     
 class ImageAlignStep(Step):
 
