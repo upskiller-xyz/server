@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
-import cv2
+# import cv2
 import os
 
-from .prediction_input import PredictionInput
+# from .prediction_input import PredictionInput
 
 class MultiThreader:
     
@@ -14,12 +14,14 @@ class MultiThreader:
 
     @classmethod
     def estimate_workers(cls, num_inputs:int=1)->int:
-        cls.num_workers = int(np.min(np.max(1, num_inputs), (os.cpu_count() or 1) * 5))
+        cls.num_workers = int(np.min([np.max([1, num_inputs]), (os.cpu_count() or 1) * 5]))
         return cls.num_workers
 
     @classmethod
     def run(cls, func:exec, inp):
-        return as_completed([x.result() for x in cls._run(func, inp)])
+        futures = cls._run(func, inp)
+        # Yield results as they complete
+        return [f.result() for f in futures]  #(f.result() for f in as_completed(futures))
     
     @classmethod
     def _run(cls, func:exec, inp=[]):
@@ -28,16 +30,6 @@ class MultiThreader:
             return [executor.submit(func, i) for i in inp]
 
 
-class Processor:
-
-    @classmethod
-    def run(cls, inp: PredictionInput)->None:
-        return cls._run(inp)
-    
-    @classmethod
-    def _run(cls, inp: PredictionInput) -> None:
-        raise NotImplementedError("Subclasses must implement this method")
-    
 
 
 

@@ -38,18 +38,18 @@ class ImageTransformer:
         return PredictionInput(inp.id, res, inp.params)
     
     @classmethod
-    def mask(img: np.ndarray)->np.ndarray:
+    def mask(cls, img: np.ndarray)->np.ndarray:
         """
         Condiders the image as a mask if it has any pixel with value less than 250.
         """
         return (img < 250).any(axis=2)
     
     @classmethod
-    def rotate(img: np.ndarray, angle: float)->np.ndarray:
+    def rotate(cls, img: np.ndarray, angle: float)->np.ndarray:
         return cv2.rotate(img, angle)
     
     @classmethod
-    def translate(img:np.ndarray, trans: tuple[float])->np.ndarray:
+    def translate(cls, img:np.ndarray, trans: tuple[float])->np.ndarray:
         
         x = -1 * trans[0] * SceneSettings.get_scale(0)
         y = -1 * trans[1] * SceneSettings.get_scale(1)
@@ -68,7 +68,7 @@ class ImageTransformer:
         res = cls._cnv.make(img)
         res[~cls.mask(img)] = 0.0 
         return res
-    
+    @classmethod
     def combine(cls, imgs:np.ndarray)->np.ndarray:
         return np.sum(np.stack(imgs, axis=0), axis=0)
 
