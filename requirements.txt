@@ -2,8 +2,10 @@ Flask==3.0.0
 flask_cors
 gunicorn==22.0.0
 Werkzeug==3.0.1
+google-auth
+google-cloud-storage
 tensorflow==2.17
 numpy
 Pillow
 scikit-image
-google-cloud-storage
+scikit-learn
