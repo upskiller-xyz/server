@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import json
 import logging
 
-from steps.step import Step
+from steps import step as st
 from .pipelineinput import PipelineInput
 from .pipeline_config import PipelineConfig
 
@@ -27,6 +27,11 @@ class Pipeline:
             except Exception as e:
                 logger.exception("Step {}; error {}".format(step.name, e))
         return inp
+    
+class GetDfPipeline(Pipeline):
+    steps = [st.PredictStep,
+             st.AlignStep
+             ]
 
 if __name__ == '__main__':
     pass
