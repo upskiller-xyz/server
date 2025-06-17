@@ -1,14 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
-import json
-import logging
 
 from ..pipelineinput import PipelineInput
 from ..pipeline_config import PipelineConfig
-
+from ..inference import Inference
+from ..image_transformer import ImageTransformer
 
 class Step:
-    name = "generic_step"
 
     @classmethod
     def run(cls,  inp:PipelineInput, config:PipelineConfig=PipelineConfig.default())->PipelineInput:
@@ -20,16 +18,13 @@ class Step:
         return inp
     
 class PredictStep(Step):
-    name = "predict_step"
 
     @classmethod
     def _run(cls, inp:PipelineInput, config:PipelineConfig=PipelineConfig.default())->PipelineInput:
-        
-        return inp
+        return Inference.run(inp.value)
     
 
 class ImageCombineStep(Step):
-    name = "imagecombine_step"
 
     @classmethod
     def _run(cls, inp:PipelineInput, config:PipelineConfig=PipelineConfig.default())->PipelineInput:
@@ -37,9 +32,7 @@ class ImageCombineStep(Step):
         return inp
     
 class ImageAlignStep(Step):
-    name = "imagealign_step"
 
     @classmethod
     def _run(cls, inp:PipelineInput, config:PipelineConfig=PipelineConfig.default())->PipelineInput:
-        
-        return inp
+        return ImageTransformer.run(inp)
