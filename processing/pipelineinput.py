@@ -20,12 +20,19 @@ class PipelineInput:
     def build(cls, value:int)->PipelineInput:
         return cls(value)
     
-    
 @dataclass
-class GetDfPipelineInput(PipelineInput):
+class GetOneDfPipelineInput(PipelineInput):
     value: tf.Tensor
 
     @classmethod
-    def build(cls, bytestring:str)->GetDfPipelineInput:
+    def build(cls, bytestring:str)->GetOneDfPipelineInput:
         img = ImageManager.get_image(bytestring)
         return cls(img)
+    
+@dataclass
+class GetDfPipelineInput(PipelineInput):
+    value: list[tf.Tensor]
+
+    @classmethod
+    def build(cls, bytestrings:list[str])->GetDfPipelineInput:
+        return [ImageManager.get_image(b) for b in bytestrings]

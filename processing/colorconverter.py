@@ -60,7 +60,7 @@ class ColorConverter:
         return res.labels_.reshape(*img.shape[:2])
 
 
-    def make_(self, img:np.array)->np.array:
+    def _make(self, img:np.array)->np.array:
         """
         Function to convert the image to the colorscale values
         :param img: image to convert to colorscale values in RGB, np.array
