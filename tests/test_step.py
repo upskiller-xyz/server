@@ -1,5 +1,4 @@
 import pytest
-import tensorflow as tf
 from unittest import mock
 
 from ..processing.steps.step import Step, PredictStep, ImageCombineStep, ImageAlignStep
@@ -11,17 +10,6 @@ class DummyPipelineInput:
 @pytest.fixture
 def dummy_input():
     return DummyPipelineInput(value="dummy_value")
-
-@pytest.fixture
-def tensor_list_input():
-    tensors = [tf.ones((2, 2, 3)), tf.zeros((2, 2, 3))]
-    return DummyPipelineInput(value=tensors)
-
-@pytest.fixture
-def np_array_list_input():
-    import numpy as np
-    arrays = [np.ones((2, 2, 3)), np.zeros((2, 2, 3))]
-    return DummyPipelineInput(value=arrays)
 
 def test_step_run_calls__run(monkeypatch, dummy_input):
     called = {}
@@ -41,18 +29,12 @@ def test_predict_step_run(monkeypatch, dummy_input):
     out = PredictStep._run(dummy_input)
     assert out == dummy_result
 
-def test_image_combine_step_run_tensor_list(monkeypatch, tensor_list_input):
-    dummy_result = tf.ones((2, 2, 3))
+def test_image_combine_step_run(monkeypatch, dummy_input):
+    dummy_result = "combined"
     monkeypatch.setattr("server.processing.steps.step.ImageTransformer.combine", lambda v: dummy_result)
-    out = ImageCombineStep._run(tensor_list_input)
-    assert (out == dummy_result).numpy().all()
-
-def test_image_combine_step_run_np_array_list(monkeypatch, np_array_list_input):
-    import numpy as np
-    dummy_result = np.ones((2, 2, 3))
-    monkeypatch.setattr("server.processing.steps.step.ImageTransformer.combine", lambda v: dummy_result)
-    out = ImageCombineStep._run(np_array_list_input)
-    assert np.all(out == dummy_result)
+    dummy_input.value = "input_for_combine"
+    out = ImageCombineStep._run(dummy_input)
+    assert out == dummy_result
 
 def test_image_align_step_run(monkeypatch, dummy_input):
     dummy_result = "aligned"
