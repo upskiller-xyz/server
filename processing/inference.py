@@ -5,6 +5,9 @@ import os
 import tensorflow as tf
 import logging
 
+from .prediction_input import PredictionInput
+from .utils import TARGET_SIZE
+
 logger = logging.Logger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -24,10 +27,11 @@ class Inference:
             return False
 
     @classmethod
-    def run(cls, image:np.ndarray)->np.ndarray:
+    def run(cls, inp:PredictionInput)->PredictionInput:
         if not cls.model:
             _init = cls.init()
             if not _init:
-                return np.ndarray([])
-        inp = tf.reshape(image, (-1, 256, 256, 3))
-        return cls.model(inp, training=False).numpy()
+                return PredictionInput(inp.id, tf.zeros(tf.shape(inp.image)), inp.params)
+        img = tf.reshape(inp.image, (-1, TARGET_SIZE, TARGET_SIZE, 3))
+        res = cls.model(img, training=False)
+        return PredictionInput(inp.id, res, inp.params)

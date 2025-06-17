@@ -6,34 +6,7 @@ import numpy as np
 import cv2
 import os
 
-@dataclass
-class Matrix:
-    rotation: float
-    translation: float
-
-@dataclass
-class PredictionInput:
-    text: str
-    model_name: str
-    parameters: Matrix
-
-    # def __post_init__(self):
-    #     if not isinstance(self.text, str):
-    #         raise ValueError("text must be a string")
-    #     if not isinstance(self.model_name, str):
-    #         raise ValueError("model_name must be a string")
-    #     if not isinstance(self.parameters, dict):
-    #         raise ValueError("parameters must be a dictionary")
-
-    @classmethod
-    def load_image(cls, bytesting)->np.ndarray:
-        """
-        Load a PredictionInput instance from a testing source.
-        This is a placeholder for actual loading logic.
-        """
-        img = np.frombuffer(bytesting, dtype=np.uint8)
-        return cv2.imdecode(img, flags=1)
-        
+from .prediction_input import PredictionInput
 
 class MultiThreader:
     
