@@ -1,9 +1,12 @@
 import pytest
 from ..processing.processor import MultiThreader
-# from concurrent.futures import 
+
+# from concurrent.futures import
+
 
 def dummy_func(x):
     return x * 2
+
 
 def test_estimate_workers(monkeypatch):
     monkeypatch.setattr("os.cpu_count", lambda: 8)
@@ -12,17 +15,29 @@ def test_estimate_workers(monkeypatch):
     n = MultiThreader.estimate_workers(100)
     assert n == 40  # 8*5
 
+
 def test_run_and__run(monkeypatch):
     # Patch ThreadPoolExecutor to run synchronously for test
     class DummyFuture:
-        def __init__(self, val): 
+        def __init__(self, val):
             self._val = val
-        def result(self): return self._val
+
+        def result(self):
+            return self._val
+
     class DummyExecutor:
-        def __init__(self, **kwargs): pass
-        def __enter__(self): return self
-        def __exit__(self, *a): pass
-        def submit(self, func, i): return DummyFuture(func(i))
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            pass
+
+        def submit(self, func, i):
+            return DummyFuture(func(i))
+
     monkeypatch.setattr("server.processing.processor.ThreadPoolExecutor", DummyExecutor)
     monkeypatch.setattr("os.cpu_count", lambda: 2)
     inp = [1, 2, 3]
