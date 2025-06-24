@@ -138,6 +138,76 @@ bash build.sh
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+#### Locally
+
+These steps will help you set up and run the Daylight server API locally for development and testing.
+
+1. **Clone the Repository**
+
+  ```bash
+  git clone <your-repo-url>
+  cd upskiller/server
+  ```
+2. **Set Up a Python Virtual Environment**
+
+  ```bash
+  python3 -m venv venv
+  source venv/bin/activate
+  ```
+3. **Install Dependencies**
+
+  ```bash
+  pip install -r requirements.txt
+  ```
+4. **Set Environment Variables (Optional)**
+
+  You can set the server port or other environment variables as needed:
+
+  ```bash
+  export PORT=8081
+  ```
+
+5. **Run the Server**
+
+  ```bash
+  python main.py
+  ```
+
+  The server will start on `http://localhost:8081` by default.
+
+6. **Run Tests** - optional
+
+  To run all tests (including those using real assets):
+
+  ```bash
+  pytest tests/
+  ```
+
+---
+
+## 8. **API Usage**
+
+See [API Documentation](./API_DOCUMENTATION.md) for endpoint details and example requests.
+
+---
+
+## 9. **Troubleshooting**
+
+- If you see errors about missing modules, double-check your virtual environment and dependencies.
+- If you see errors about missing assets, ensure your `.assets` directory is correctly placed and populated.
+- For CORS issues in development, CORS is enabled in the Flask app.
+
+---
+
+## 10. **Stopping the Server**
+
+Press `Ctrl+C` in the terminal where the server is running.
+
+---
+
+**You're now ready to develop and test
+
+
 <!-- DESIGN -->
 ## Design
 
