@@ -4,26 +4,34 @@ import cv2
 import numpy as np
 from enum import Enum
 import json
+import logging
+
+logger = logging.Logger(__name__)
 
 from .gcs_manager import GCSManager
+
 ASSET_BUCKET = "daylight_analysis_assets"
+
 
 class COLORSCALES(Enum):
     """
     All the colorscales used for our analyses, with their paths to a protected bucket on GCP.
     """
+
     DF = "colorscale_df.json"
     DA = "colorscale_da.json"
+
 
 @dataclass(frozen=True)
 class ScaleColor:
     """
     Color from a colorscale with its assigned value.
     """
-    r:int
-    g:int
-    b:int
-    value:float
+
+    r: int
+    g: int
+    b: int
+    value: float
 
     @property
     def rgb(self) -> tuple[int, int, int]:
@@ -31,25 +39,30 @@ class ScaleColor:
         Color's formatted rgb representation.
         """
         return (self.r, self.g, self.b)
-    
+
     @classmethod
-    def background(cls)->ScaleColor:
+    def background(cls) -> ScaleColor:
         """
         Method generating a background color with the value assigned as -1.
         """
-        return ScaleColor(0,0,0,-1)
+        return ScaleColor(0, 0, 0, -1)
+
 
 @dataclass(frozen=True)
 class ColorScale:
     """
     Class containing the analysis colorscale. Keeps colors with their assigned values.
     """
+
     colors: list[ScaleColor] = field(default_factory=list)
 
     @property
     def colors_lab(self) -> list[tuple[int, int, int]]:
         # return rgb2lab([color.rgb for color in self.colors])
-        return cv2.cvtColor(np.array([[list(x.rgb) for x in self.colors]]).astype(np.uint8)[:,:,:3], cv2.COLOR_RGB2Lab)[0]
+        return cv2.cvtColor(
+            np.array([[list(x.rgb) for x in self.colors]]).astype(np.uint8)[:, :, :3],
+            cv2.COLOR_RGB2LAB,
+        )[0]
 
     def to_json(self) -> str:
         return json.dumps(self, default=lambda o: o.__dict__, indent=4)
@@ -63,9 +76,9 @@ class ColorScale:
         colors = [ScaleColor(*color["Color"], color["Value"]) for color in d]
         colors.append(ScaleColor.background())
         return ColorScale(colors=colors)
-    
+
     @classmethod
-    def from_cloud(cls, cs:COLORSCALES=COLORSCALES.DF) -> ColorScale:
+    def from_cloud(cls, cs: COLORSCALES = COLORSCALES.DF) -> ColorScale:
         """
         Method that loads a certain colorscale from GCP.
         """
@@ -75,12 +88,23 @@ class ColorScale:
         return None
 
     @classmethod
-    def load(cls, cs:COLORSCALES=COLORSCALES.DF) -> ColorScale:
+    def load(cls, cs: COLORSCALES = COLORSCALES.DF) -> ColorScale:
         """
         Method that loads a certain colorscale from GCP.
         """
         try:
             return GCSManager.load(cs.value, bucket_name=ASSET_BUCKET)
         except Exception as e:
-            print(e)
+            logger.exception(e)
             return None
+
+    def value_to_color(self, value: np.array) -> np.array[ScaleColor]:
+        """
+        Method that gets the closest color to the given label.
+        """
+        dist = np.array([x.value for x in self.colors])[:, np.newaxis] - np.array(
+            value
+        ).reshape(1, 1, -1)
+        idx = np.abs(dist).argmin(axis=1)[0]
+
+        return np.array(self.colors)[idx]
