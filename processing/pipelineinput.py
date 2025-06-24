@@ -5,34 +5,36 @@ import logging
 import tensorflow as tf
 
 from .image_manager import ImageManager
+from .prediction_input import PredictionInput, Matrix
 
-logger = logging.getLogger(__name__)    
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class PipelineInput:
     value: int
 
     @classmethod
-    def default(cls)->PipelineInput:
+    def default(cls) -> PipelineInput:
         return PipelineInput(0)
-    
+
     @classmethod
-    def build(cls, value:int)->PipelineInput:
+    def build(cls, value: int) -> PipelineInput:
         return cls(value)
-    
+
+
 @dataclass
 class GetOneDfPipelineInput(PipelineInput):
-    value: tf.Tensor
+    value: PredictionInput
 
     @classmethod
-    def build(cls, bytestring:str)->GetOneDfPipelineInput:
+    def build(
+        cls, bytestring: str, id: str = "", params: Matrix = Matrix(0, (0, 0, 0))
+    ) -> GetOneDfPipelineInput:
         img = ImageManager.get_image(bytestring)
-        return cls(img)
-    
+        return cls(PredictionInput(id, img, params))
+
+
 @dataclass
 class GetDfPipelineInput(PipelineInput):
-    value: list[tf.Tensor]
-
-    @classmethod
-    def build(cls, bytestrings:list[str])->GetDfPipelineInput:
-        return [ImageManager.get_image(b) for b in bytestrings]
+    value: list[PredictionInput]
