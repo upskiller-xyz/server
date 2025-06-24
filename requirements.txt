@@ -5,7 +5,11 @@ Werkzeug==3.0.1
 google-auth
 google-cloud-storage
 tensorflow==2.17
+tensorflow[and-cuda]
 numpy
+opencv-python
 Pillow
+pytest
+black
 scikit-image
 scikit-learn
