@@ -1,6 +1,13 @@
 import pytest
+import base64
+import numpy as np
 import tensorflow as tf
-from ..processing.pipelineinput import PipelineInput, GetOneDfPipelineInput, GetDfPipelineInput
+from ..processing.pipelineinput import (
+    PipelineInput,
+    GetOneDfPipelineInput,
+    GetDfPipelineInput,
+)
+
 
 def test_pipelineinput_default_and_build():
     p = PipelineInput.default()
@@ -10,17 +17,23 @@ def test_pipelineinput_default_and_build():
     assert isinstance(p2, PipelineInput)
     assert p2.value == 42
 
+
 def test_getonedfpipelineinput_build(monkeypatch):
-    dummy_img = tf.ones((8, 8, 3))
-    monkeypatch.setattr("server.processing.image_manager.ImageManager.get_image", lambda b: dummy_img)
-    inp = GetOneDfPipelineInput.build("bytes")
+    dummy_img = np.ones((8, 8, 3))
+    monkeypatch.setattr(
+        "server.processing.image_manager.ImageManager.get_image", lambda b: dummy_img
+    )
+    bs = base64.b64encode(dummy_img.tobytes()).decode("utf-8")
+    inp = GetOneDfPipelineInput.build(bs)
     assert isinstance(inp, GetOneDfPipelineInput)
-    assert tf.reduce_all(inp.value == dummy_img)
+    assert tf.reduce_all(inp.value.np_image == dummy_img)
+
 
 def test_getdfpipelineinput_build(monkeypatch):
-    dummy_img = tf.ones((8, 8, 3))
-    monkeypatch.setattr("server.processing.image_manager.ImageManager.get_image", lambda b: dummy_img)
-    result = GetDfPipelineInput.build(["a", "b"])
-    # Note: build returns a list, not an instance!
-    assert isinstance(result, list)
-    assert all(tf.reduce_all(img == dummy_img) for img in result)
+    dummy_img = np.ones((8, 8, 3))
+    monkeypatch.setattr(
+        "server.processing.image_manager.ImageManager.get_image", lambda b: dummy_img
+    )
+    result = GetDfPipelineInput.build([dummy_img])
+    assert isinstance(result, GetDfPipelineInput)
+    assert all(tf.reduce_all(img == dummy_img) for img in result.value)
