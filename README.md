@@ -12,7 +12,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/upskiller-xyz/server">
-    <img src="https://github.com/upskiller-xyz/DaylightFactor/blob/main/docs/images/logo_upskiller.png" alt="Logo" width="80" height="80">
+    <img src="https://github.com/upskiller-xyz/DaylightFactor/blob/main/docs/images/logo_upskiller.png" alt="Logo" height="100" >
   </a>
 
   <h3 align="center" Store Visibility </h3>
@@ -235,7 +235,7 @@ These steps will help you set up and run the Daylight server API locally for dev
 
 ### Endpoints: 
 
-![Endpoints](./docs/api.md)
+[Endpoints](./docs/api.md) documentation.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
