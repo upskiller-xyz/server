@@ -12,7 +12,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/upskiller-xyz/server">
-    <img src="../assets/.docs/logo.svg" alt="Logo" width="80" height="80">
+    <img src="https://github.com/upskiller-xyz/Daylight-Factor/blob/main/docs/images/logo_upskiller.png" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center" Store Visibility </h3>
@@ -48,11 +48,20 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a>
-        <li><a href="#deployment">Usage</a></li>
+        <li><a href="#estimate-daylight-factor">Estimate Daylight Factor</a></li>
+        <li><a href="#deployment">Deployment</a>
+          <li><a href="#locally">Local deployment</a></li>
+        </li>
     </li>
-    <li><a href="#design">Design</a></li>
+    <li><a href="#design">Design</a>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#endpoints">Endpoints</a></li>
+    </li>
     <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contribution">Contribution</a></li>
     <li><a href="#license">License</a></li>
+    <li><a href="#attribution">Attribution</a></li>
+    <li><a href="#trademark-notice">Trademark notice</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
@@ -63,7 +72,9 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-This is the source code for Upskiller's server that makes daylight factor predictions available to the wider public.
+![image](https://github.com/upskiller-xyz/Daylight-Factor/blob/main/docs/images/heatmap_in_3d.png)
+
+This is code for the server for Daylight factor simulation project. It can be used for local as well as for cloud deployment and usage.
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -77,15 +88,12 @@ This is the source code for Upskiller's server that makes daylight factor predic
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- GETTING STARTED -->
 ## Getting Started
 
 To get a local copy up and running follow these simple example steps.
 
 ### Prerequisites
-
 
 * [python3](https://www.python.org/downloads/)
 
@@ -101,18 +109,18 @@ To get a local copy up and running follow these simple example steps.
   server/Scripts.activate
   pip install -r requirements.txt
 ```
-
+1. [Download](https://upskiller.xyz/df_model) the model
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-See [API Documentation](./API_DOCUMENTATION.md) for endpoint details and example requests.
+See [API Documentation](./docs/api.md) for endpoint details and example requests.
 
 ### Estimate Daylight Factor
 
-Getting results from function can be done by running [the following code](./demo.ipynb):
+Getting results from function can be done by running [the following code](./example/demo.ipynb):
 
 ```py
 import base64
@@ -213,26 +221,43 @@ These steps will help you set up and run the Daylight server API locally for dev
   ```bash
   pytest tests/
   ```
-
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- DESIGN -->
 ## Design
 
-### Library: 
+### Architecture: 
 
-![Class Diagram: Components](../assets/.docs/library.svg)
+![Class Diagram: Components](./docs/library.svg)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Endpoints: 
 
-![Endpoints](../assets/.docs/endpoints.svg)
+![Endpoints](./docs/api.md)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Add CI/CD
-- [ ] Add different model versions
-
 See the [open issues](https://github.com/upskiller-xyz/server/issues) for a full list of proposed features (and known issues).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- CONTRIBUTION -->
+## Contribution
+
+See [Contribution](./docs/CONTRIBUTING.md) for more details on contribution.
+
+**Some guidelines:**
+
+* Use OOP and try to follow the existing code deisgn patterns;
+* We use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) - or at least try to.
+* We use [semantic versioning](https://semver.org/) and tags to navigate the packages.
+* Noticed something that is not working as it should? [Submit](https://github.com/upskiller-xyz/server/issues/new) an issue.
+
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -240,10 +265,32 @@ See the [open issues](https://github.com/upskiller-xyz/server/issues) for a full
 <!-- LICENSE -->
 ## License
 
-H&M internal project.
+See [License](./docs/LICENSE) for more details - or [read a summary](https://choosealicense.com/licenses/gpl-3.0/).
+
+In short:
+
+Strong copyleft. You **can** use, distribute and modify this code in both academic and commercial contexts. At the same time you **have to** keep the code open-source under the same license (`GPL-3.0`) and give the appropriate [attribution](#attribution) to the authors.
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+## Attribution
+
+📖 **Academic/Industry Use**: Please cite this work as described in [CITATION.cff](docs/citation/CITATION.cff), [CITE.txt](docs/citation/CITE.txt) or [ATTRIBUTION.md](docs/citation/ATTRIBUTION.md). Alternatively you can download the BibTeX file [here](docs/citation/daylight-server.bib) by adding it to `.tex` files by
+
+```tex
+\bibliography{daylight-server}
+```
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+## Trademark Notice  
+
+- **"Upskiller"** is an informal collaborative name used by contributors affiliated with BIMTech Innovations AB.  
+- BIMTech Innovations AB owns all legal rights to the **Daylight Factor Simulation Server** project.  
+- The GPL-3.0 license applies to code, not branding. Commercial use of the names requires permission.
+
+Contact: [Upskiller](mailto:info@upskiller.xyz)
 
 ## Contact
 
@@ -256,6 +303,9 @@ Stasja Fedorova - [e-mail](mailto:stasya.fedorova@upskiller.xyz)
 ## Acknowledgments
 
 * [README template](https://github.com/othneildrew/Best-README-Template)
+* [Belysningsstiftelsen](https://belysningsstiftelsen.se/) - for financial support.
+* [IAAC](https://iaac.net) - for providing the ground for preliminary study of daylight factor in architectural context.
+* Hande Karataş, Dawid Drożdż, Angelos Chronis, Gabriella Rossi, Vasiliki Fragkia, Marie-Claude Dubois - for contributing with their knowledge to the preliminary study and exploration phase.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -272,5 +322,5 @@ Stasja Fedorova - [e-mail](mailto:stasya.fedorova@upskiller.xyz)
 [issues-shield]: https://img.shields.io/github/issues/upskiller-xyz/server.svg?style=for-the-badge
 [issues-url]: https://github.com/upskiller-xyz/server/issues
 [license-shield]: https://img.shields.io/github/license/upskiller-xyz/server.svg?style=for-the-badge
-[license-url]: https://github.com/upskiller-xyz/server/blob/master/LICENSE.txt
-[product-screenshot]: assets/screenshot.png
+[license-url]: https://github.com/upskiller-xyz/server/blob/master/docs/LICENSE.txt
+[product-screenshot]: https://github.com/upskiller-xyz/Daylight-Factor/blob/main/docs/images/heatmap_in_3d.png
