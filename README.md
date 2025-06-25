@@ -209,6 +209,7 @@ These steps will help you set up and run the Daylight server API locally for dev
 5. **Run the Server**
 
   ```bash
+  cd src
   python main.py
   ```
 
