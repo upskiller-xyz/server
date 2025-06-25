@@ -1,4 +1,4 @@
-# Daylight Factor Simulation Server
+# Daylight Factor Estimation Server
 # Copyright (C) 2024 BIMTech Innovations AB (developed by the Upskiller group)
 #
 # This program is free software: you can redistribute it and/or modify

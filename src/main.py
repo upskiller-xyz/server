@@ -1,5 +1,5 @@
 # /usr/bin/env python3
-# Daylight Factor Simulation Server
+# Daylight Factor Estimation Server
 # Copyright (C) 2024 BIMTech Innovations AB (developed by the Upskiller group)
 #
 # This program is free software: you can redistribute it and/or modify
@@ -92,7 +92,7 @@ SERVER_BASE_URL = f"http://localhost:{SERVER_PORT}"
 @app.route("/get_df", methods=["POST"])
 def get_df():
     """
-    Endpoint that receives a set of images per apartment with transformation parameters and returns a simulation matrix for DF factor.
+    Endpoint that receives a set of images per apartment with transformation parameters and returns a estimation matrix for DF factor.
     """
 
     try:
@@ -141,7 +141,7 @@ def get_df():
 @app.route("/get_stats", methods=["POST"])
 def get_stats():
     """
-    Endpoint that receives a set of images per apartment with transformation parameters and returns a simulation matrix for DF factor.
+    Endpoint that receives a set of images per apartment with transformation parameters and returns a estimation matrix for DF factor.
     """
     try:
         res = next(iter(request.files.values())).read()
@@ -176,7 +176,7 @@ def get_stats():
 @app.route("/to_values", methods=["POST"])
 def to_values():
     """
-    Endpoint that receives a daylight factor simulation expressed in RGB and returns the same simulation expressed in DF values.
+    Endpoint that receives a daylight factor estimation expressed in RGB and returns the same estimation expressed in DF values.
     """
 
     try:
@@ -203,7 +203,7 @@ def to_values():
 @app.route("/to_rgb", methods=["POST"])
 def get_rgb():
     """
-    Endpoint that receives a daylight factor simulation expressed inDF values and returns the same simulation expressed in RGB.
+    Endpoint that receives a daylight factor estimation expressed inDF values and returns the same estimation expressed in RGB.
     """
     try:
         res = next(iter(request.files.values())).read()

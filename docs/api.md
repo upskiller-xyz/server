@@ -7,7 +7,7 @@ Example requests are provided in both **Python** (using `requests`) and **TypeSc
 
 ## `/to_values`  
 **POST** `/to_values`  
-Converts an RGB daylight simulation image to DF (daylight factor) values.
+Converts an RGB daylight estimated image to DF (daylight factor) values.
 
 ### Request
 - **Content-Type:** `multipart/form-data`
@@ -110,7 +110,7 @@ fetch("http://localhost:8081/to_rgb", {
 
 ## `/get_stats`  
 **POST** `/get_stats`  
-Calculates statistics from a daylight simulation image.
+Calculates statistics from a daylight estimation image.
 
 ### Request
 - **Content-Type:** `multipart/form-data`
@@ -157,7 +157,7 @@ fetch("http://localhost:8081/get_stats", {
 
 ## `/get_df`  
 **POST** `/get_df`  
-Runs the full pipeline for a set of images and transformation parameters, returning a simulation matrix.
+Runs the full pipeline for a set of images and transformation parameters, returning an estimation matrix.
 
 ### Request
 - **Content-Type:** `multipart/form-data`

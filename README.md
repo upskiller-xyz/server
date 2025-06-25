@@ -74,7 +74,7 @@
 
 ![image](https://github.com/upskiller-xyz/Daylight-Factor/blob/main/docs/images/heatmap_in_3d.png)
 
-This is code for the server for Daylight factor simulation project. It can be used for local as well as for cloud deployment and usage.
+This is code for the server for Daylight factor estimation project. It can be used for local as well as for cloud deployment and usage.
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -288,7 +288,7 @@ Strong copyleft. You **can** use, distribute and modify this code in both academ
 ## Trademark Notice  
 
 - **"Upskiller"** is an informal collaborative name used by contributors affiliated with BIMTech Innovations AB.  
-- BIMTech Innovations AB owns all legal rights to the **Daylight Factor Simulation Server** project.  
+- BIMTech Innovations AB owns all legal rights to the **Daylight Factor Estimation Server** project.  
 - The GPL-3.0 license applies to code, not branding. Commercial use of the names requires permission.
 
 Contact: [Upskiller](mailto:info@upskiller.xyz)
