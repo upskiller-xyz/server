@@ -7,7 +7,7 @@ version = "1.0.0"
 authors = [
   { name="Upskiller-xyz", email="info@upskiller.xyz" },
 ]
-description = "Backend for Daylight factor simulation tool local deployment."
+description = "Backend for Daylight factor estimation tool local deployment."
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [

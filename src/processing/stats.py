@@ -1,4 +1,4 @@
-# Daylight Factor Simulation Server
+# Daylight Factor Estimation Server
 # Copyright (C) 2024 BIMTech Innovations AB (developed by the Upskiller group)
 #
 # This program is free software: you can redistribute it and/or modify
@@ -26,7 +26,7 @@ from .extended_enum import ExtendedEnum
 @dataclass(frozen=True)
 class Stat:
     """
-    Stat over building performance simulation, result in values.
+    Stat over building performance estimation, result in values.
     """
 
     value: float = 0
