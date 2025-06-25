@@ -13,6 +13,7 @@ saved_model
 *.xlsx
 *.zip
 .bashrc
+.env
 
 *.xls
 *.DS_Store
@@ -32,6 +33,7 @@ build/
 develop-eggs/
 dist/
 downloads/
+tests/
 eggs/
 .eggs/
 lib/

@@ -10,6 +10,7 @@ saved_model
 *.xlsx
 *.zip
 .bashrc
+.env
 
 *.xls
 *.DS_Store

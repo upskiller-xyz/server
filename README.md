@@ -1,0 +1,276 @@
+<a name="readme-top"></a>
+
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+
+
+
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/upskiller-xyz/server">
+    <img src="../assets/.docs/logo.svg" alt="Logo" width="80" height="80">
+  </a>
+
+  <h3 align="center" Store Visibility </h3>
+
+  <p align="center">
+    Daylight Server
+    <br />
+    <a href="https://github.com/upskiller-xyz/server">View Demo</a>
+    ·
+    <a href="https://github.com/upskiller-xyz/server/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/upskiller-xyz/server/issues">Request Feature</a>
+  </p>
+</div>
+
+
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a>
+        <li><a href="#deployment">Usage</a></li>
+    </li>
+    <li><a href="#design">Design</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+This is the source code for Upskiller's server that makes daylight factor predictions available to the wider public.
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+### Built With
+
+* [python](https://www.python.org/)
+* [flask](https://flask.palletsprojects.com/)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+To get a local copy up and running follow these simple example steps.
+
+### Prerequisites
+
+
+* [python3](https://www.python.org/downloads/)
+
+### Installation
+
+1. Clone the repo
+   ```sh
+   git clone https://github.com/upskiller-xyz/server.git
+   ```
+1. Create a virtual environment and install dependencies:
+```sh
+  python -m venv server
+  server/Scripts.activate
+  pip install -r requirements.txt
+```
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- USAGE EXAMPLES -->
+## Usage
+
+See [API Documentation](./API_DOCUMENTATION.md) for endpoint details and example requests.
+
+### Estimate Daylight Factor
+
+Getting results from function can be done by running [the following code](./demo.ipynb):
+
+```py
+import base64
+import cv2
+import io
+import json
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import requests
+
+server_url = "http://127.0.0.1:8081"
+img_folder = "assets"
+imgname = "image.png"
+
+img_path = "{}/{}".format(img_folder, imgname)
+im = cv2.imread(img_path)
+is_success, buffer = cv2.imencode(".png", im)
+img_bytes = io.BytesIO(buffer.tobytes())
+
+
+files = [
+("file", ("filename", img_bytes))]
+resp = requests.post("{}/get_df".format(server_url), files=files, data={
+        "translation":json.dumps({"x": 0, "y": 0}), 
+        "rotation": json.dumps([0.0])
+    })
+
+k = resp.json()["content"]
+# k = base64.b64decode(k)
+img = np.load(io.BytesIO(base64.b64decode(k)))
+plt.imshow(img)
+
+```
+
+### Deployment
+
+* Make sure your changes are followed by an update in ```__version__.py```
+* Update an ```.env``` file with the following values:
+```sh
+GCP_REGION=gcpregion
+SERVER_NAME=servername
+REPO_NAME=reponame
+IMAGE_NAME=imgname
+```
+* Authenticate to GCP account 
+```sh
+gcloud auth login
+```
+* Deploy the new version of the server
+```sh
+bash build.sh
+```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Locally
+
+These steps will help you set up and run the Daylight server API locally for development and testing.
+
+1. **Clone the Repository**
+
+  ```bash
+  git clone <your-repo-url>
+  cd upskiller/server
+  ```
+2. **Set Up a Python Virtual Environment**
+
+  ```bash
+  python3 -m venv venv
+  source venv/bin/activate
+  ```
+3. **Install Dependencies**
+
+  ```bash
+  pip install -r requirements.txt
+  ```
+4. **Set Environment Variables (Optional)**
+
+  You can set the server port or other environment variables as needed:
+
+  ```bash
+  export PORT=8081
+  ```
+
+5. **Run the Server**
+
+  ```bash
+  python main.py
+  ```
+
+  The server will start on `http://localhost:8081` by default.
+
+6. **Run Tests** - optional
+
+  To run all tests (including those using real assets):
+
+  ```bash
+  pytest tests/
+  ```
+
+
+<!-- DESIGN -->
+## Design
+
+### Library: 
+
+![Class Diagram: Components](../assets/.docs/library.svg)
+
+### Endpoints: 
+
+![Endpoints](../assets/.docs/endpoints.svg)
+
+<!-- ROADMAP -->
+## Roadmap
+
+- [ ] Add CI/CD
+- [ ] Add different model versions
+
+See the [open issues](https://github.com/upskiller-xyz/server/issues) for a full list of proposed features (and known issues).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+<!-- LICENSE -->
+## License
+
+H&M internal project.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+## Contact
+
+Stasja Fedorova - [e-mail](mailto:stasya.fedorova@upskiller.xyz)
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- ACKNOWLEDGMENTS -->
+## Acknowledgments
+
+* [README template](https://github.com/othneildrew/Best-README-Template)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/upskiller-xyz/server.svg?style=for-the-badge
+[contributors-url]: https://github.com/upskiller-xyz/server/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/upskiller-xyz/server.svg?style=for-the-badge
+[forks-url]: https://github.com/upskiller-xyz/server/network/members
+[stars-shield]: https://img.shields.io/github/stars/upskiller-xyz/server.svg?style=for-the-badge
+[stars-url]: https://github.com/upskiller-xyz/server/stargazers
+[issues-shield]: https://img.shields.io/github/issues/upskiller-xyz/server.svg?style=for-the-badge
+[issues-url]: https://github.com/upskiller-xyz/server/issues
+[license-shield]: https://img.shields.io/github/license/upskiller-xyz/server.svg?style=for-the-badge
+[license-url]: https://github.com/upskiller-xyz/server/blob/master/LICENSE.txt
+[product-screenshot]: assets/screenshot.png

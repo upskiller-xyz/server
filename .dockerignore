@@ -11,6 +11,7 @@ saved_model
 *.xlsx
 *.zip
 .bashrc
+tests/
 
 *.xls
 *.DS_Store
