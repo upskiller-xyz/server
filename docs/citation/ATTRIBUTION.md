@@ -11,5 +11,5 @@ If you use the **Daylight Factor Estimation Server** in research, industry, or d
   version = {1.0.0},
   license = {GPL-3.0},
   publisher = {BIMTech Innovations AB},
-  year = {2024}
+  year = {2025}
 }
