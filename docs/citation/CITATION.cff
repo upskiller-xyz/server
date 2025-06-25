@@ -20,4 +20,4 @@ authors:
     orcid: "https://orcid.org/0009-0008-4014-4806"
 license: "GPL-3.0"
 repository-code: "https://github.com/upskiller-xyz/server"
-abstract: "A Flask-based server for estimating and analyzing daylight factors in architectural environments."
+abstract: "A Flask-based server for estimating and analyzing daylight factor in architectural environments."

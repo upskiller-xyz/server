@@ -12,7 +12,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/upskiller-xyz/server">
-    <img src="https://github.com/upskiller-xyz/Daylight-Factor/blob/main/docs/images/logo_upskiller.png" alt="Logo" width="80" height="80">
+    <img src="https://github.com/upskiller-xyz/DaylightFactor/blob/main/docs/images/logo_upskiller.png" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center" Store Visibility </h3>
@@ -72,7 +72,7 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-![image](https://github.com/upskiller-xyz/Daylight-Factor/blob/main/docs/images/heatmap_in_3d.png)
+![image](https://github.com/upskiller-xyz/DaylightFactor/blob/main/docs/images/heatmap_in_3d.png)
 
 This is code for the server for Daylight factor estimation project. It can be used for local as well as for cloud deployment and usage.
 
