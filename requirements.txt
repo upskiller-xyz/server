@@ -11,5 +11,3 @@ opencv-python
 Pillow
 pytest
 black
-scikit-image
-scikit-learn
