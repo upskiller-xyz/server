@@ -65,9 +65,9 @@ class ImageCombineStep(Step):
 
     @classmethod
     def _run(cls, inp: inpt.GetDfPipelineInput) -> inpt.GetOneDfPipelineInput:
-
+        
         img = ImageTransformer.combine([i.value.np_image for i in inp.value])
-
+        
         return inpt.GetOneDfPipelineInput(
             PredictionInput(inp.value[0].value.id, img, inp.value[0].value.params)
         )
@@ -101,9 +101,8 @@ class ImageAlignStep(Step):
 
     @classmethod
     def _run(cls, inp: inpt.GetOneDfPipelineInput) -> inpt.GetOneDfPipelineInput:
-
         res = ImageTransformer.run(
-            inp.value.np_image, inp.value.params.rotation, inp.value.params.translation
+            inp.value.np_image, inp.value.params.rotation, inp.value.params.translation, inp.value.id
         )
         return inpt.GetOneDfPipelineInput(
             PredictionInput(inp.value.id, res, inp.value.params)

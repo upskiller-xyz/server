@@ -151,7 +151,6 @@ class ImageTransformer:
         :param w: target width, int
         :return: resized image, np.ndarray
         """
-        print("Input shape to resize:", img.shape)
         if hasattr(img, "numpy") and len(img.shape) == 4:
             img = img.numpy()[0]
         if img.shape[0] == h and img.shape[1] == w:
@@ -159,7 +158,6 @@ class ImageTransformer:
         logger.debug(
             "Resizing {} from shape {} to {}".format(type(img), img.shape, (w, h))
         )
-        print("Input shape {} to resize: {}".format(type(img), img.shape))
         res = cv2.resize(img, (w, h), interpolation=cv2.INTER_NEAREST_EXACT)
         if res.ndim == 2:  # grayscale fallback
             res = res[..., np.newaxis]
@@ -177,15 +175,15 @@ class ImageTransformer:
 
     @classmethod
     def run(
-        cls, image: np.ndarray, angle: float, cs: Coord
+        cls, image: np.ndarray, angle: float, cs: Coord, id:int=0
     ) -> np.ndarray:  # inp:PredictionInput)->PredictionInput:
         angle = ceil(degrees(angle))
         res = cls.rotate(image, angle)
-        return cls.align(res, cs)
+        res = cls.align(res, cs)
+        return res
 
     @classmethod
     def translate(cls, img: np.ndarray, trans: Coord) -> np.ndarray:
-        print(trans.x, trans.y)
         return np.roll(img, (int(trans.y), int(trans.x)), axis=(0, 1))
 
     @classmethod

@@ -15,7 +15,9 @@
 # If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
+import cv2
 from dataclasses import dataclass
+from datetime import datetime
 import json
 import logging
 
@@ -45,6 +47,16 @@ class Pipeline(st.Step):
 
 class GetOneDfPipeline(Pipeline):
     steps = [st.ImagePreprocessStep, st.PredictStep, st.ImageAlignStep]
+    @classmethod
+    def _run(cls, inp: inpt.PipelineInput) -> inpt.PipelineInput:
+        for step in cls.steps:
+            try:
+                # _ = cv2.imwrite("../assets/pre_{}_{}.png".format(step.__name__, inp.value.id), inp.value.np_image * 255)
+                inp = step.run(inp)
+                # _ = cv2.imwrite("../assets/{}_{}.png".format(step.__name__, inp.value.id), inp.value.np_image)
+            except Exception as e:
+                logger.exception("Step {}; error {}".format(step.__name__, e))
+        return inp
 
 
 class GetDfPipeline(Pipeline):

@@ -97,7 +97,6 @@ def get_df():
 
     try:
         fls = request.files.getlist("file")
-        # print(len(files))
         image_strings = [x.read() for x in fls]
         angles = json.loads(request.form.get("rotation"))
         coords = json.loads(request.form.get("translation"))
@@ -146,11 +145,8 @@ def get_stats():
     try:
         res = next(iter(request.files.values())).read()
         inp = ImageManager.load_image(res)[:, :, :3]
-        print("got inp", inp.shape)
         matrix = ColorConverter.get_values(inp)
-        print("got matrix")
         statspack = st.StatsPack.build(matrix)
-        print("made statspack")
         if len(statspack.content) == 0:
             return build_response(
                 {EXTERNAL_KEYS.METRICS.value: {}, EXTERNAL_KEYS.SUCCESS.value: False},
@@ -221,7 +217,6 @@ def get_rgb():
                 HTTPStatus.BAD_REQUEST.value,
             )
 
-        print("res: {}".format(inp.shape))
 
         matrix = ColorConverter.values_to_image(inp)
         res = Encoder.np_to_base64(matrix)
